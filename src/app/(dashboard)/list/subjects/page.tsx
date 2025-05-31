@@ -79,7 +79,11 @@ const SubjectListPage = async (
       if (value !== undefined) {
         switch (key) {
           case "teacherId":
-            query.teacherId = value;
+            query.teachers = {
+              some: {
+                id: value
+              }
+            };
             break;
           case "search":
             query.name = { contains: value, mode: "insensitive" };
@@ -95,7 +99,7 @@ const SubjectListPage = async (
     prisma.subject.findMany({
       where: query,
       include: {
-        teacher: true,
+        teachers: true,
       },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),

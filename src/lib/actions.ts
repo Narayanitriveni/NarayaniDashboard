@@ -1588,14 +1588,12 @@ export const getStudentReportData = async (studentId: string) => {
         results: {
           include: {
             exam: {
-              include: {
-                lesson: {
-                  include: {
-                    subject: {
-                      select: {
-                        name: true,
-                      },
-                    },
+              select: {
+                id: true,
+                title: true,
+                subject: {
+                  select: {
+                    name: true,
                   },
                 },
               },
@@ -1603,10 +1601,8 @@ export const getStudentReportData = async (studentId: string) => {
           },
           orderBy: {
             exam: {
-              lesson: {
-                subject: {
-                  name: 'asc',
-                },
+              subject: {
+                name: 'asc',
               },
             },
           },

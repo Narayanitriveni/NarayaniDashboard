@@ -5,7 +5,7 @@ import TableSearch from "@/components/TableSearch";
 import SortDropdown from "@/components/SortDropdown";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
-import { Prisma, Result, Student, Exam, Assignment, Lesson, Teacher, Class } from "@prisma/client";
+import { Prisma, Result, Student, Exam, Assignment, Lesson, Teacher, Class, Subject } from "@prisma/client";
 import Image from "next/image";
 
 import { auth } from "@clerk/nextjs/server";
@@ -25,10 +25,8 @@ type ResultList = {
 type ResultWithRelations = Result & {
   student: Student;
   exam?: (Exam & {
-    lesson: Lesson & {
-      teacher: Teacher;
-      class: Class;
-    };
+    subject: Subject;
+    class: Class;
   }) | null;
   assignment?: (Assignment & {
     lesson: Lesson & {
@@ -168,7 +166,7 @@ const ResultListPage = async (
       break;
     case "teacher":
       query.OR = [
-        { exam: { lesson: { teacherId: currentUserId! } } },
+        { exam: { class: { supervisorId: currentUserId! } } },
         { assignment: { lesson: { teacherId: currentUserId! } } }
       ];
       break;
@@ -191,12 +189,8 @@ const ResultListPage = async (
         student: true,
         exam: {
           include: {
-            lesson: {
-              include: {
-                teacher: true,
-                class: true
-              }
-            }
+            subject: true,
+            class: true
           }
         },
         assignment: {
@@ -227,16 +221,34 @@ const ResultListPage = async (
     const assessment = item.exam || item.assignment;
     if (!assessment) return null;
 
+    let teacherName = '';
+    let teacherSurname = '';
+    let className = '';
+    let startTime: Date | undefined = undefined;
+
+    if (item.assignment && item.assignment.lesson) {
+      teacherName = item.assignment.lesson.teacher.name;
+      teacherSurname = item.assignment.lesson.teacher.surname;
+      className = item.assignment.lesson.class.name;
+      startTime = item.assignment.lesson.startTime || item.assignment.dueDate;
+    } else if (item.exam && item.exam.class) {
+      // Use class supervisor as teacher for exams if available
+      teacherName = item.exam.class.supervisorId || '';
+      teacherSurname = '';
+      className = item.exam.class.name;
+      startTime = item.exam.startTime;
+    }
+
     return {
       id: item.id,
       title: assessment.title,
       studentName: item.student.name,
       studentSurname: item.student.surname,
-      teacherName: assessment.lesson.teacher.name,
-      teacherSurname: assessment.lesson.teacher.surname,
+      teacherName,
+      teacherSurname,
       score: item.score,
-      className: assessment.lesson.class.name,
-      startTime: 'startTime' in assessment ? assessment.startTime : assessment.dueDate,
+      className,
+      startTime,
     };
   }).filter(Boolean);
 

@@ -13,6 +13,15 @@ type TeacherAttendanceWithRelations = TeacherAttendance & {
   teacher: Teacher;
 };
 
+const sortOptions = [
+  { label: "Date (Newest)", value: "date", direction: "desc" as const },
+  { label: "Date (Oldest)", value: "date", direction: "asc" as const },
+  { label: "Teacher (A-Z)", value: "teacher", direction: "asc" as const },
+  { label: "Teacher (Z-A)", value: "teacher", direction: "desc" as const },
+  { label: "Status (A-Z)", value: "status", direction: "asc" as const },
+  { label: "Status (Z-A)", value: "status", direction: "desc" as const },
+];
+
 const TeacherAttendanceListPage = async (
   props: {
     searchParams: Promise<{ [key: string]: string | undefined }>;
@@ -186,7 +195,7 @@ const TeacherAttendanceListPage = async (
         <h1 className="hidden md:block text-lg font-semibold">Teacher Attendance</h1>
         <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
           <TableSearch />
-          <SortDropdown sort={sort} />
+          <SortDropdown options={sortOptions} defaultSort="date" />
           <div className="flex items-center gap-4 self-end">
             {role === "admin" && (
               <FormContainer table="teacherattendance" type="create" />

@@ -161,9 +161,15 @@ export const FormContainer = async ({
           }),
           prisma.exam.findMany({
             where: {
-              lesson: {
-                ...(role === "teacher" ? { teacherId: currentUserId! } : {})
-              }
+              ...(role === "teacher" ? {
+                subject: {
+                  teachers: {
+                    some: {
+                      id: currentUserId!
+                    }
+                  }
+                }
+              } : {})
             },
             select: { 
               id: true, 
