@@ -26,7 +26,7 @@ type ResultWithRelations = Result & {
   student: Student;
   exam?: (Exam & {
     subject: Subject;
-    class: Class;
+    class: Class & { supervisor: Teacher | null };
   }) | null;
   assignment?: (Assignment & {
     lesson: Lesson & {
@@ -190,7 +190,11 @@ const ResultListPage = async (
         exam: {
           include: {
             subject: true,
-            class: true
+            class: {
+              include: {
+                supervisor: true
+              }
+            }
           }
         },
         assignment: {
@@ -232,9 +236,9 @@ const ResultListPage = async (
       className = item.assignment.lesson.class.name;
       startTime = item.assignment.lesson.startTime || item.assignment.dueDate;
     } else if (item.exam && item.exam.class) {
-      // Use class supervisor as teacher for exams if available
-      teacherName = item.exam.class.supervisorId || '';
-      teacherSurname = '';
+      // Use class supervisor's name for exams
+      teacherName = item.exam.class.supervisor?.name || '';
+      teacherSurname = item.exam.class.supervisor?.surname || '';
       className = item.exam.class.name;
       startTime = item.exam.startTime;
     }

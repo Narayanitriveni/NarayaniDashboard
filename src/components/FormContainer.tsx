@@ -156,7 +156,8 @@ export const FormContainer = async ({
             select: { 
               id: true, 
               name: true,
-              surname: true 
+              surname: true,
+              StudentId: true
             },
           }),
           prisma.exam.findMany({
@@ -231,7 +232,7 @@ export const FormContainer = async ({
         break;
       case "fee":
         const feeStudents = await prisma.student.findMany({
-          select: { id: true, name: true, surname: true },
+          select: { id: true, name: true, surname: true,StudentId: true },
         });
         relatedData = { students: feeStudents };
         break;
@@ -258,6 +259,7 @@ export const FormContainer = async ({
                   id: true,
                   name: true,
                   surname: true,
+                  StudentId: true,
                   class: {
                     select: {
                       name: true

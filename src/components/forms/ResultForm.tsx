@@ -6,7 +6,7 @@ import InputField from "../InputField";
 import { resultSchema, ResultSchema } from "@/lib/formValidationSchemas";
 import { createResult, updateResult } from "@/lib/actions";
 import { useFormState } from "react-dom";
-import { Dispatch, SetStateAction, useEffect } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 
@@ -25,6 +25,7 @@ const ResultForm = ({
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<ResultSchema>({
     resolver: zodResolver(resultSchema),
@@ -57,6 +58,48 @@ const ResultForm = ({
   // Watch the assessment type to conditionally render exam/assignment select
   const assessmentType = watch("assessmentType");
 
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
+
+  useEffect(() => {
+    if (data?.studentId && students.length > 0) {
+      const initialStudent = students.find((s: any) => s.id === data.studentId);
+      if (initialStudent) {
+        setSelectedStudent(initialStudent);
+        setSearchTerm(`${initialStudent.name} ${initialStudent.surname} (${initialStudent.StudentId || 'N/A'})`);
+      }
+    }
+  }, [data, students]);
+
+  const filteredStudents = students.filter((student: any) => {
+    const fullName = `${student.name} ${student.surname}`.toLowerCase();
+    const studentId = student.StudentId?.toLowerCase() || "";
+    const searchLower = searchTerm.toLowerCase();
+    return fullName.includes(searchLower) || studentId.includes(searchLower);
+  });
+
+  const handleStudentSelect = (student: any) => {
+    setSelectedStudent(student);
+    setSearchTerm(`${student.name} ${student.surname} (${student.StudentId || 'N/A'})`);
+    setValue("studentId", student.id);
+    setTimeout(() => setIsDropdownOpen(false), 100);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest(".student-dropdown-container")) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
       <h1 className="text-xl font-semibold">
@@ -75,24 +118,47 @@ const ResultForm = ({
           />
         )}
 
-        <div className="flex flex-col gap-2 w-full md:w-1/3">
-          <label className="text-xs text-gray-500">Student</label>
-          <select
+        <div className="flex flex-col gap-2 w-full md:w-1/3 student-dropdown-container">
+          <label className="text-xs text-gray-500">Search Student</label>
+          <input
+            type="text"
             className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
-            {...register("studentId")}
-            defaultValue={data?.studentId}
-          >
-            <option value="">Select a student</option>
-            {students.map((student: { id: string; name: string; surname: string }) => (
-              <option value={student.id} key={student.id}>
-                {student.name + " " + student.surname}
-              </option>
-            ))}
-          </select>
+            placeholder="Search by name or student ID..."
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setIsDropdownOpen(true);
+            }}
+            onClick={() => setIsDropdownOpen(true)}
+          />
+          {isDropdownOpen && filteredStudents.length > 0 && (
+            <div className="absolute bg-white mt-12 shadow-lg rounded-md max-h-60 overflow-y-auto z-10 w-full max-w-md">
+              {filteredStudents.map((student: any) => (
+                <div
+                  key={student.id}
+                  className="p-2 hover:bg-gray-100 cursor-pointer"
+                  onClick={() => handleStudentSelect(student)}
+                >
+                  <div className="flex justify-between items-center">
+                    <span>{student.name} {student.surname}</span>
+                    <span className="text-gray-500 text-sm">ID: {student.StudentId || 'N/A'}</span>
+                  </div>
+                  <div className="text-xs text-gray-500">{student.class?.name}</div>
+                </div>
+              ))}
+            </div>
+          )}
+          {selectedStudent ? (
+            <input
+              type="hidden"
+              {...register("studentId")}
+              value={selectedStudent.id}
+            />
+          ) : (
+            <input type="hidden" {...register("studentId")} />
+          )}
           {errors.studentId?.message && (
-            <p className="text-xs text-red-400">
-              {errors.studentId.message.toString()}
-            </p>
+            <p className="text-xs text-red-400">{errors.studentId.message.toString()}</p>
           )}
         </div>
 

@@ -62,12 +62,14 @@ const PaymentForm = ({
 
   const filteredFees = fees.filter((fee: any) => {
     const fullName = `${fee.student.name} ${fee.student.surname}`.toLowerCase();
-    return fullName.includes(searchTerm.toLowerCase());
+    const studentId = fee.student.StudentId?.toLowerCase() || "";
+    const searchLower = searchTerm.toLowerCase();
+    return fullName.includes(searchLower) || studentId.includes(searchLower);
   });
 
   const handleFeeSelect = (fee: any) => {
     setSelectedFee(fee);
-    setSearchTerm(`${fee.student.name} ${fee.student.surname}`);
+    setSearchTerm(`${fee.student.name} ${fee.student.surname} (${fee.student.StudentId || 'N/A'})`);
     setValue("feeId", fee.id);
     setTimeout(() => setIsDropdownOpen(false), 100);
   };
@@ -134,10 +136,16 @@ const PaymentForm = ({
                       className="p-2 hover:bg-gray-100 cursor-pointer flex justify-between items-center"
                       onClick={() => handleFeeSelect(fee)}
                     >
-                      <span>{fee.student.name} {fee.student.surname}</span>
-                      <span className="text-green-600 font-semibold">
-                        {Number(fee.totalAmount - fee.paidAmount).toLocaleString()}
-                      </span>
+                      <div>
+                        <span>{fee.student.name} {fee.student.surname}</span>
+                        <span className="text-gray-500 text-sm ml-2">ID: {fee.student.StudentId || 'N/A'}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-500">{fee.student.class?.name}</span>
+                        <span className="text-green-600 font-semibold">
+                          {Number(fee.totalAmount - fee.paidAmount).toLocaleString()}
+                        </span>
+                      </div>
                     </div>
                   ))}
                 </div>
