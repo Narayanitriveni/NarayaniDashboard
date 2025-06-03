@@ -6,9 +6,10 @@ import InputField from "../InputField";
 import { eventSchema, EventSchema } from "@/lib/formValidationSchemas";
 import { createEvent, updateEvent } from "@/lib/actions";
 import { useFormState } from "react-dom";
-import { Dispatch, SetStateAction, useEffect } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
+import BikramSambatDatePicker from "../BikramSambatDatePicker";
 
 const EventForm = ({
   type,
@@ -24,6 +25,7 @@ const EventForm = ({
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<EventSchema>({
     resolver: zodResolver(eventSchema),
@@ -53,6 +55,18 @@ const EventForm = ({
 
   const { classes } = relatedData;
 
+  const handleStartDateSelect = (date: { year: number; month: number; day: number }) => {
+    // Convert BS date to AD date (this is a simplified conversion)
+    const adDate = new Date(); // You'll need to implement proper BS to AD conversion
+    setValue('startTime', adDate);
+  };
+
+  const handleEndDateSelect = (date: { year: number; month: number; day: number }) => {
+    // Convert BS date to AD date (this is a simplified conversion)
+    const adDate = new Date(); // You'll need to implement proper BS to AD conversion
+    setValue('endTime', adDate);
+  };
+
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
       <h1 className="text-xl font-semibold">
@@ -78,7 +92,6 @@ const EventForm = ({
             defaultValue={data?.title}
             register={register}
             error={errors?.title}
-       
           />
 
           <div className="flex flex-col gap-2 w-full md:w-1/2">
@@ -104,25 +117,25 @@ const EventForm = ({
         </div>
 
         <div className="flex justify-between flex-wrap gap-4">
-          <InputField
-            label="Start Time"
-            name="startTime"
-            type="datetime-local"
-            defaultValue={data?.startTime}
-            register={register}
-            error={errors?.startTime}
-       
-          />
+          <div className="flex flex-col gap-2 w-full md:w-1/2">
+            <label className="text-xs text-gray-500">Start Date (Bikram Sambat)</label>
+            <BikramSambatDatePicker onDateSelect={handleStartDateSelect} />
+            {errors.startTime?.message && (
+              <p className="text-xs text-red-400">
+                {errors.startTime.message.toString()}
+              </p>
+            )}
+          </div>
 
-          <InputField
-            label="End Time"
-            name="endTime"
-            type="datetime-local"
-            defaultValue={data?.endTime}
-            register={register}
-            error={errors?.endTime}
-           
-          />
+          <div className="flex flex-col gap-2 w-full md:w-1/2">
+            <label className="text-xs text-gray-500">End Date (Bikram Sambat)</label>
+            <BikramSambatDatePicker onDateSelect={handleEndDateSelect} />
+            {errors.endTime?.message && (
+              <p className="text-xs text-red-400">
+                {errors.endTime.message.toString()}
+              </p>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-col gap-2 w-full">

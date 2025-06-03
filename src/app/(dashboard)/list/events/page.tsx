@@ -9,6 +9,7 @@ import { Class, Event, Prisma } from "@prisma/client";
 import Image from "next/image";
 import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
+import { ADToBS } from "bikram-sambat-js"; // ✅ BS date converter
 
 type EventList = Event & { class: Class | null };
 
@@ -39,12 +40,12 @@ const EventListPage = async (
       accessor: "class",
     },
     {
-      header: "Start Time",
+      header: "Start Time (BS)",
       accessor: "startTime",
       className: "hidden md:table-cell",
     },
     {
-      header: "End Time",
+      header: "End Time (BS)",
       accessor: "endTime",
       className: "hidden md:table-cell",
     },
@@ -58,42 +59,39 @@ const EventListPage = async (
       : []),
   ];
 
-  const renderRow = (item: EventList) => (
-    <tr
-      key={item.id}
-      className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
-    >
-      <td className="p-4">{item.title}</td>
-      <td className="hidden md:table-cell">{item.description}</td>
-      <td>{item.class?.name || "-"}</td>
-      <td className="hidden md:table-cell">
-        {new Date(item.startTime).toLocaleString("en-US", {
-          dateStyle: "medium",
-          timeStyle: "short",
-        })}
-      </td>
-      <td className="hidden md:table-cell">
-        {new Date(item.endTime).toLocaleString("en-US", {
-          dateStyle: "medium",
-          timeStyle: "short",
-        })}
-      </td>
-      {(role === "admin" || role === "teacher") && (
-        <td>
-          <div className="flex items-center gap-2">
-            <FormContainer table="event" type="update" data={item} />
-            <FormContainer table="event" type="delete" id={item.id} />
-          </div>
-        </td>
-      )}
-    </tr>
-  );
+  const renderRow = (item: EventList) => {
+    const startDate = new Date(item.startTime);
+    const endDate = new Date(item.endTime);
+    const bsStart = ADToBS(startDate.toISOString().split("T")[0]);
+    const bsEnd = ADToBS(endDate.toISOString().split("T")[0]);
+    const startTime = startDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+    const endTime = endDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+
+    return (
+      <tr
+        key={item.id}
+        className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
+      >
+        <td className="p-4">{item.title}</td>
+        <td className="hidden md:table-cell">{item.description}</td>
+        <td>{item.class?.name || "-"}</td>
+        <td className="hidden md:table-cell">{`${bsStart} ${startTime}`}</td>
+        <td className="hidden md:table-cell">{`${bsEnd} ${endTime}`}</td>
+        {(role === "admin" || role === "teacher") && (
+          <td>
+            <div className="flex items-center gap-2">
+              <FormContainer table="event" type="update" data={item} />
+              <FormContainer table="event" type="delete" id={item.id} />
+            </div>
+          </td>
+        )}
+      </tr>
+    );
+  };
 
   const { page, sort, direction, ...queryParams } = searchParams;
-
   const p = page ? parseInt(page) : 1;
 
-  // URL PARAMS CONDITION
   const query: Prisma.EventWhereInput = {};
 
   if (queryParams) {
@@ -113,7 +111,6 @@ const EventListPage = async (
     }
   }
 
-  // ROLE CONDITIONS
   if (role === "teacher") {
     query.class = {
       lessons: {
