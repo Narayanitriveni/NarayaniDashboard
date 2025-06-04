@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { getNextGradeClasses, transferStudentsToNextClass } from '@/lib/actions';
 import { toast } from 'react-hot-toast';
 
@@ -23,7 +23,7 @@ const TransferModal = ({ classId, onClose, currentClassName }: TransferModalProp
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useState(() => {
+  useEffect(() => {
     const fetchClasses = async () => {
       setIsLoading(true);
       setError(null);
@@ -46,8 +46,7 @@ const TransferModal = ({ classId, onClose, currentClassName }: TransferModalProp
 
     setIsLoading(true);
     const result = await transferStudentsToNextClass(
-      { success: false, error: false },
-      { classId, nextClassId: selectedClassId } as any // Need to update transfer action to accept nextClassId
+      { classId, nextClassId: selectedClassId }
     );
 
     if (result.success) {

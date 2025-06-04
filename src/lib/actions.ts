@@ -1886,7 +1886,6 @@ export const deleteTeacherAttendance = async (
 };
 
 export const transferStudentsToNextClass = async (
-  currentState: CurrentState,
   data: { classId: number, nextClassId: number }
 ) => {
   try {
