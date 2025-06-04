@@ -1884,3 +1884,117 @@ export const deleteTeacherAttendance = async (
     return { success: false, error: true };
   }
 };
+
+export const transferStudentsToNextClass = async (
+  currentState: CurrentState,
+  data: { classId: number, nextClassId: number }
+) => {
+  try {
+    // Get current class with its grade
+    const currentClass = await prisma.class.findUnique({
+      where: { id: data.classId },
+      include: { grade: true }
+    });
+
+    if (!currentClass) {
+      return { success: false, error: true, message: "Current class not found" };
+    }
+
+    // Find the next grade
+    const nextGrade = await prisma.grade.findFirst({
+      where: { level: currentClass.grade.level + 1 }
+    });
+
+    if (!nextGrade) {
+      return { success: false, error: true, message: "Next grade not found" };
+    }
+
+    // Find the selected next class
+    const nextClass = await prisma.class.findUnique({
+      where: { id: data.nextClassId },
+      include: {
+        _count: {
+          select: { students: true }
+        }
+      }
+    });
+
+    if (!nextClass) {
+      return { success: false, error: true, message: "Selected next class not found" };
+    }
+
+    // Check if next class has enough capacity
+    const availableCapacity = nextClass.capacity - nextClass._count.students;
+    const currentStudents = await prisma.student.count({
+      where: { classId: data.classId }
+    });
+
+    if (availableCapacity < currentStudents) {
+      return { 
+        success: false, 
+        error: true, 
+        message: `Selected class has ${availableCapacity} spots available, but there are ${currentStudents} students to transfer` 
+      };
+    }
+
+    // Transfer all students to the next class
+    await prisma.student.updateMany({
+      where: { classId: data.classId },
+      data: { 
+        classId: nextClass.id,
+        gradeId: nextGrade.id
+      }
+    });
+
+    return { success: true, error: false };
+  } catch (err) {
+    console.error("Error in transferStudentsToNextClass:", err);
+    return { success: false, error: true, message: "Failed to transfer students" };
+  }
+};
+
+export const getNextGradeClasses = async (currentClassId: number) => {
+  try {
+    // Find the current class and its grade level
+    const currentClass = await prisma.class.findUnique({
+      where: { id: currentClassId },
+      select: { grade: { select: { level: true } } }
+    });
+
+    if (!currentClass) {
+      return { success: false, error: true, message: "Current class not found" };
+    }
+
+    // Find the next grade
+    const nextGrade = await prisma.grade.findFirst({
+      where: { level: currentClass.grade.level + 1 }
+    });
+
+    if (!nextGrade) {
+      return { success: false, error: true, message: "Next grade not found" };
+    }
+
+    // Find all classes in the next grade with student counts
+    const nextClasses = await prisma.class.findMany({
+      where: {
+        gradeId: nextGrade.id
+      },
+      select: {
+        id: true,
+        name: true,
+        capacity: true,
+        _count: {
+          select: { students: true }
+        }
+      },
+      orderBy: {
+        name: 'asc'
+      }
+    });
+
+    return { success: true, error: false, data: nextClasses };
+  } catch (error: any) {
+    console.error("Error fetching next grade classes:", error);
+    return { success: false, error: true, message: "Failed to fetch next grade classes" };
+  }
+};

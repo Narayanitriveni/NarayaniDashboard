@@ -4,13 +4,16 @@ import Link from "next/link";
 import prisma from "@/lib/prisma";
 import Table from "@/components/Table";
 import FormContainer from "@/components/FormContainer";
+import TransferButton from "@/components/TransferButton";
+import { useRouter } from "next/navigation";
+import { toast } from "react-hot-toast";
 
-const ClassDetailPage = async (props: { params: Promise<{ id: string }> }) => {
-  const params = await props.params;
+const ClassDetailPage = async (props: { params: { id: string } }) => {
+  const { id } = props.params;
   const session = await auth();
   const role = (session.sessionClaims?.metadata as { role?: string })?.role;
 
-  const classId = parseInt(params.id);
+  const classId = parseInt(id);
 
   // Fetch class with related data
   const classData = await prisma.class.findUnique({
@@ -161,6 +164,7 @@ const ClassDetailPage = async (props: { params: Promise<{ id: string }> }) => {
           {role === "admin" && (
             <div className="flex gap-2">
               <FormContainer table="class" type="update" data={classData} />
+              <TransferButton classId={classData.id} currentClassName={classData.name} />
               <Link href={`/list/classes`}>
                 <button className="px-4 py-2 bg-lamaSky text-white rounded-md text-sm">
                   Back to Classes
