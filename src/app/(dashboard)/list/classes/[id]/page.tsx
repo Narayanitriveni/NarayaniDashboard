@@ -5,8 +5,7 @@ import prisma from "@/lib/prisma";
 import Table from "@/components/Table";
 import FormContainer from "@/components/FormContainer";
 import TransferButton from "@/components/TransferButton";
-import { useRouter } from "next/navigation";
-import { toast } from "react-hot-toast";
+
 
 const ClassDetailPage = async (props: { params: { id: string } }) => {
   const { id } = props.params;
@@ -166,7 +165,7 @@ const ClassDetailPage = async (props: { params: { id: string } }) => {
               <FormContainer table="class" type="update" data={classData} />
               <TransferButton classId={classData.id} currentClassName={classData.name} />
               <Link href={`/list/classes`}>
-                <button className="px-4 py-2 bg-lamaSky text-white rounded-md text-sm">
+                <button className="px-4 py-2 bg-lamaSky text-black rounded-md text-sm hover:bg-lamaSky/90">
                   Back to Classes
                 </button>
               </Link>

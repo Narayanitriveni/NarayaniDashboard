@@ -7,6 +7,7 @@ import { ArrowLeft, Download, Receipt, Plus } from "lucide-react";
 import Link from "next/link";
 import { FeeStatus } from "@prisma/client";
 import FormContainer from "@/components/FormContainer";
+import { ADToBS } from "bikram-sambat-js";
 
 const FeeDetailsPage = async (
   props: {
@@ -67,6 +68,17 @@ const FeeDetailsPage = async (
     return Number(fee.totalAmount) - totalPaid;
   };
 
+  const nepaliMonths = [
+    'बैशाख', 'जेठ', 'आषाढ', 'श्रावण', 'भाद्र', 'आश्विन',
+    'कार्तिक', 'मंसिर', 'पौष', 'माघ', 'फाल्गुन', 'चैत्र'
+  ];
+
+  const formatBSDate = (date: Date) => {
+    const bsDate = ADToBS(date.toISOString().split('T')[0]);
+    const [year, month, day] = bsDate.split('-').map(Number);
+    return `${nepaliMonths[month - 1]} ${day}, ${year}`;
+  };
+
   return (
     <div className="flex-1 p-4 flex flex-col gap-4">
       <div className="flex justify-between items-center">
@@ -108,15 +120,15 @@ const FeeDetailsPage = async (
             <p><span className="text-gray-500">Fee ID:</span> {fee.id}</p>
             <p><span className="text-gray-500">Description:</span> {fee.description || "No description"}</p>
             <p><span className="text-gray-500">Total Amount:</span> {Number(fee.totalAmount).toLocaleString()}</p>
-            <p><span className="text-gray-500">Due Date:</span> {format(new Date(fee.dueDate), "dd/MM/yyyy")}</p>
+            <p><span className="text-gray-500">Due Date:</span> {formatBSDate(new Date(fee.dueDate))}</p>
             <p>
               <span className="text-gray-500">Status:</span>{" "}
               <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(fee.status)}`}>
                 {fee.status}
               </span>
             </p>
-            <p><span className="text-gray-500">Created:</span> {format(new Date(fee.createdAt), "dd/MM/yyyy")}</p>
-            <p><span className="text-gray-500">Last Updated:</span> {format(new Date(fee.updatedAt), "dd/MM/yyyy")}</p>
+            <p><span className="text-gray-500">Created:</span> {formatBSDate(new Date(fee.createdAt))}</p>
+            <p><span className="text-gray-500">Last Updated:</span> {formatBSDate(new Date(fee.updatedAt))}</p>
           </div>
         </div>
 
@@ -149,7 +161,7 @@ const FeeDetailsPage = async (
               {fee.payments.length > 0 ? (
                 fee.payments.map((payment) => (
                   <tr key={payment.id} className="border-b hover:bg-gray-50">
-                    <td className="py-2 px-4">{format(new Date(payment.date), "dd/MM/yyyy")}</td>
+                    <td className="py-2 px-4">{formatBSDate(new Date(payment.date))}</td>
                     <td className="py-2 px-4">{payment.transactionId || "N/A"}</td>
                     <td className="py-2 px-4">{payment.method}</td>
                     <td className="py-2 px-4">{payment.reference || "N/A"}</td>

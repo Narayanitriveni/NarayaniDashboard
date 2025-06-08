@@ -7,8 +7,8 @@ import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Prisma, Result, Student, Exam, Assignment, Lesson, Teacher, Class, Subject } from "@prisma/client";
 import Image from "next/image";
-
 import { auth } from "@clerk/nextjs/server";
+import { ADToBS } from "bikram-sambat-js";
 
 type ResultList = {
   id: number;
@@ -37,8 +37,8 @@ type ResultWithRelations = Result & {
 };
 
 const sortOptions = [
-  { label: "Date (Newest)", value: "createdAt", direction: "desc" as const },
-  { label: "Date (Oldest)", value: "createdAt", direction: "asc" as const },
+  { label: "Date (Newest)", value: "date", direction: "desc" as const },
+  { label: "Date (Oldest)", value: "date", direction: "asc" as const },
   { label: "Score (High-Low)", value: "score", direction: "desc" as const },
   { label: "Score (Low-High)", value: "score", direction: "asc" as const },
   { label: "Student (A-Z)", value: "student.name", direction: "asc" as const },
@@ -98,33 +98,37 @@ const ResultListPage = async (
       : []),
   ];
 
-  const renderRow = (item: ResultList) => (
-    <tr
-      key={item.id}
-      className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
-    >
-      <td className="flex items-center gap-4 p-4">{item.title}</td>
-      <td>{item.studentName + " " + item.studentSurname}</td>
-      <td className="hidden md:table-cell">{item.score}</td>
-      <td className="hidden md:table-cell">
-        {item.teacherName + " " + item.teacherSurname}
-      </td>
-      <td className="hidden md:table-cell">{item.className}</td>
-      <td className="hidden md:table-cell">
-        {new Intl.DateTimeFormat("en-US").format(item.startTime)}
-      </td>
-      <td>
-        <div className="flex items-center gap-2">
-          {(role === "admin" || role === "teacher") && (
-            <>
-              <FormContainer table="result" type="update" data={item} />
-              <FormContainer table="result" type="delete" id={item.id} />
-            </>
-          )}
-        </div>
-      </td>
-    </tr>
-  );
+  const renderRow = (item: ResultList) => {
+    const date = new Date(item.startTime);
+    const bsDate = ADToBS(date.toISOString().split("T")[0]);
+    const time = date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+
+    return (
+      <tr
+        key={item.id}
+        className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
+      >
+        <td className="flex items-center gap-4 p-4">{item.title}</td>
+        <td>{item.studentName + " " + item.studentSurname}</td>
+        <td className="hidden md:table-cell">{item.score}</td>
+        <td className="hidden md:table-cell">
+          {item.teacherName + " " + item.teacherSurname}
+        </td>
+        <td className="hidden md:table-cell">{item.className}</td>
+        <td className="hidden md:table-cell">{`${bsDate} ${time}`}</td>
+        <td>
+          <div className="flex items-center gap-2">
+            {(role === "admin" || role === "teacher") && (
+              <>
+                <FormContainer table="result" type="update" data={item} />
+                <FormContainer table="result" type="delete" id={item.id} />
+              </>
+            )}
+          </div>
+        </td>
+      </tr>
+    );
+  };
 
   const { page, sort, direction, ...queryParams } = searchParams;
 

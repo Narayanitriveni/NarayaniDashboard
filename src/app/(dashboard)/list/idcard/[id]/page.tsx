@@ -4,6 +4,7 @@ import { StudentIDCard } from '@/components/StudentIDCard';
 import { useEffect, useState, useRef } from 'react';
 import { getStudentIdCardData } from '@/lib/actions';
 import html2pdf from 'html2pdf.js';
+import { ADToBS } from 'bikram-sambat-js';
 
 type StudentWithDetails = {
   id: string;
@@ -37,9 +38,14 @@ export default function IDCardPage(props: { params: { id: string } }) {
   const [isGenerating, setIsGenerating] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
-  const currentYear = new Date().getFullYear();
-  const schoolYear = `${currentYear}-${currentYear + 1}`;
-  const expiryDate = `31/07/${currentYear + 1}`;
+  // Get current BS year
+  const currentDate = new Date();
+  const bsDate = ADToBS(currentDate.toISOString().split('T')[0]);
+  const currentBSYear = parseInt(bsDate.split('-')[0]);
+  const schoolYear = `${currentBSYear}-${currentBSYear + 1}`;
+  
+  // Set expiry date to end of current BS year
+  const expiryDate = `31/12/${currentBSYear + 1}`;
 
   useEffect(() => {
     async function fetchStudentData() {
@@ -63,64 +69,22 @@ export default function IDCardPage(props: { params: { id: string } }) {
   }, [id]);
 
   const handleDownload = async () => {
+    if (!cardRef.current) return;
+
+    setIsGenerating(true);
     try {
-      setIsGenerating(true);
       const element = cardRef.current;
-      
-      if (!element) {
-        throw new Error('ID card element not found');
-      }
-      
-      // Pre-load all images in the card
-      const images = Array.from(element.querySelectorAll('img'));
-      
-      // Wait for all images to load
-      await Promise.all(
-        images.map((img) => {
-          if (img.complete) return Promise.resolve();
-          return new Promise((resolve) => {
-            img.onload = resolve;
-            img.onerror = resolve;
-          });
-        })
-      );
-      
-      // Add a delay to ensure rendering is complete
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
       const opt = {
-        margin: [0, 0],
-        filename: `${student?.name}_${student?.surname}_id_card.pdf`,
-        image: { 
-          type: 'jpeg', 
-          quality: 1
-        },
-        html2canvas: { 
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-          logging: false,
-          letterRendering: true,
-          imageTimeout: 0,
-          backgroundColor: '#ffffff',
-          windowWidth: 800,
-          windowHeight: 1200
-        },
-        jsPDF: { 
-          unit: 'in', 
-          format: [3.375, 5.25],
-          orientation: 'portrait',
-          compress: true,
-          hotfixes: ["px_scaling"]
-        }
+        margin: 0,
+        filename: `student-id-card-${student?.StudentId}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
       };
-      
-      // Generate and save the PDF
+
       await html2pdf().set(opt).from(element).save();
-      
-    } catch (err) {
-      console.error('Error generating PDF:', err);
-      alert('There was an error generating the PDF. Please try again.');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
     } finally {
       setIsGenerating(false);
     }
@@ -128,8 +92,8 @@ export default function IDCardPage(props: { params: { id: string } }) {
 
   if (loading) {
     return (
-      <div className="p-4 flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="p-4 text-center">
+        <h2 className="text-lg font-semibold">Loading...</h2>
       </div>
     );
   }

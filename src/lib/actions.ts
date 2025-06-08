@@ -156,27 +156,10 @@ export const createTeacher = async (
   data: TeacherSchema
 ) => {
   try {
-    // Get the highest current teacher ID to determine the next number
-    const highestTeacher = await prisma.teacher.findFirst({
-      orderBy: {
-        teacherId: 'desc'
-      },
-      select: {
-        teacherId: true
-      }
-    });
-    
-    // Generate the next teacher ID
-    let teacherId;
-    if (!highestTeacher || !highestTeacher.teacherId) {
-      // If no teachers exist yet, start with 1480730003
-      teacherId = "7480730003";
-    } else {
-      // Extract the first digit and increment it
-      const firstDigit = parseInt(highestTeacher.teacherId.charAt(0));
-      const nextDigit = firstDigit + 1;
-      teacherId = `${nextDigit}480730003`;
-    }
+    // Generate a unique teacher ID using timestamp
+    const timestamp = Date.now();
+    const randomDigits = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    const teacherId = `3${timestamp}${randomDigits}`;
   
     // Create user in Clerk
     const user = await (await clerkClient()).users.createUser({
@@ -206,7 +189,7 @@ export const createTeacher = async (
           bloodType: data.bloodType,
           sex: data.sex,
           birthday: data.birthday,
-          teacherId: teacherId, // Add the hardcoded teacher ID with incremented first digit
+          teacherId: teacherId,
           subjects: {
             connect: data.subjects?.map((subjectId: string) => ({
               id: parseInt(subjectId),

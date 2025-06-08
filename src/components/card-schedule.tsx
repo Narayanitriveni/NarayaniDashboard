@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ADToBS } from "bikram-sambat-js"
 
 interface Event {
   id: string
@@ -29,11 +30,13 @@ export function CardSchedule({ events, initialDate = new Date() }: CardScheduleP
 
   // Format date for display
   const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat("en-US", {
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-    }).format(date)
+    const bsDate = ADToBS(date.toISOString().split('T')[0]);
+    const [year, month, day] = bsDate.split('-').map(Number);
+    const monthNames = [
+      'बैशाख', 'जेठ', 'आषाढ', 'श्रावण', 'भाद्र', 'आश्विन',
+      'कार्तिक', 'मंसिर', 'पौष', 'माघ', 'फाल्गुन', 'चैत्र'
+    ];
+    return `${monthNames[month - 1]} ${day}, ${year}`;
   }
 
   // Navigate to previous/next period
@@ -75,10 +78,25 @@ export function CardSchedule({ events, initialDate = new Date() }: CardScheduleP
       const endOfWeek = new Date(startOfWeek)
       endOfWeek.setDate(endOfWeek.getDate() + 6)
 
-      return `${new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric" }).format(startOfWeek)} - ${new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric" }).format(endOfWeek)}`
+      const startBS = ADToBS(startOfWeek.toISOString().split('T')[0]);
+      const endBS = ADToBS(endOfWeek.toISOString().split('T')[0]);
+      const [startYear, startMonth, startDay] = startBS.split('-').map(Number);
+      const [endYear, endMonth, endDay] = endBS.split('-').map(Number);
+      const monthNames = [
+        'बैशाख', 'जेठ', 'आषाढ', 'श्रावण', 'भाद्र', 'आश्विन',
+        'कार्तिक', 'मंसिर', 'पौष', 'माघ', 'फाल्गुन', 'चैत्र'
+      ];
+
+      return `${monthNames[startMonth - 1]} ${startDay} - ${monthNames[endMonth - 1]} ${endDay}`;
     }
 
-    return new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(currentDate)
+    const bsDate = ADToBS(currentDate.toISOString().split('T')[0]);
+    const [year, month] = bsDate.split('-').map(Number);
+    const monthNames = [
+      'बैशाख', 'जेठ', 'आषाढ', 'श्रावण', 'भाद्र', 'आश्विन',
+      'कार्तिक', 'मंसिर', 'पौष', 'माघ', 'फाल्गुन', 'चैत्र'
+    ];
+    return `${monthNames[month - 1]} ${year}`;
   }
 
   // Filter events based on current view

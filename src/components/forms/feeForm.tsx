@@ -9,6 +9,8 @@ import { useFormState } from "react-dom";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
+import BikramSambatDatePicker from "../BikramSambatDatePicker";
+import { BSToAD } from "bikram-sambat-js";
 
 const FeeForm = ({
   type,
@@ -77,6 +79,13 @@ const FeeForm = ({
     setSearchTerm(`${student.name} ${student.surname} (${student.StudentId})`);
     setValue("studentId", student.id);
     setTimeout(() => setIsDropdownOpen(false), 100);
+  };
+
+  const handleDueDateSelect = (date: { year: number; month: number; day: number }) => {
+    const bsDateString = `${date.year}-${date.month.toString().padStart(2, '0')}-${date.day.toString().padStart(2, '0')}`;
+    const adDateString = BSToAD(bsDateString);
+    const adDate = new Date(adDateString);
+    setValue('dueDate', adDate);
   };
 
   useEffect(() => {
@@ -167,14 +176,17 @@ const FeeForm = ({
             error={errors?.totalAmount}
           />
 
-          <InputField
-            label="Due Date"
-            name="dueDate"
-            type="date"
-            defaultValue={data?.dueDate ? new Date(data.dueDate).toISOString().split('T')[0] : undefined}
-            register={register}
-            error={errors?.dueDate}
-          />
+          <div className="w-full md:w-[48%]">
+            <div className="flex flex-col gap-2">
+              <label className="text-xs text-gray-500">Due Date</label>
+              <BikramSambatDatePicker onDateSelect={handleDueDateSelect} />
+              {errors.dueDate?.message && (
+                <p className="text-xs text-red-400">
+                  {errors.dueDate.message.toString()}
+                </p>
+              )}
+            </div>
+          </div>
 
           <div className="w-full md:w-[48%]">
             <div className="flex flex-col gap-2">

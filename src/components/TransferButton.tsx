@@ -24,7 +24,7 @@ const TransferButton = ({ classId, currentClassName }: TransferButtonProps) => {
     <>
       <button 
         onClick={openModal}
-        className="px-4 py-2 bg-lamaSky text-white rounded-md text-sm hover:bg-lamaSky/90"
+        className="px-4 py-2 bg-lamaSky text-black rounded-md text-sm hover:bg-lamaSky/90"
       >
         Transfer Students
       </button>

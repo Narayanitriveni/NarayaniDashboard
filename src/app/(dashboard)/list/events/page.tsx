@@ -64,8 +64,15 @@ const EventListPage = async (
     const endDate = new Date(item.endTime);
     const bsStart = ADToBS(startDate.toISOString().split("T")[0]);
     const bsEnd = ADToBS(endDate.toISOString().split("T")[0]);
+    const [startYear, startMonth, startDay] = bsStart.split('-').map(Number);
+    const [endYear, endMonth, endDay] = bsEnd.split('-').map(Number);
     const startTime = startDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
     const endTime = endDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+
+    const nepaliMonths = [
+      'बैशाख', 'जेठ', 'आषाढ', 'श्रावण', 'भाद्र', 'आश्विन',
+      'कार्तिक', 'मंसिर', 'पौष', 'माघ', 'फाल्गुन', 'चैत्र'
+    ];
 
     return (
       <tr
@@ -75,8 +82,8 @@ const EventListPage = async (
         <td className="p-4">{item.title}</td>
         <td className="hidden md:table-cell">{item.description}</td>
         <td>{item.class?.name || "-"}</td>
-        <td className="hidden md:table-cell">{`${bsStart} ${startTime}`}</td>
-        <td className="hidden md:table-cell">{`${bsEnd} ${endTime}`}</td>
+        <td className="hidden md:table-cell">{`${nepaliMonths[startMonth - 1]} ${startDay }, ${startYear} ${startTime}`}</td>
+        <td className="hidden md:table-cell">{`${nepaliMonths[endMonth - 1]} ${endDay }, ${endYear} ${endTime}`}</td>
         {(role === "admin" || role === "teacher") && (
           <td>
             <div className="flex items-center gap-2">

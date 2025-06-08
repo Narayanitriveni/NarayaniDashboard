@@ -11,6 +11,7 @@ import { createTeacher, updateTeacher } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { CldUploadWidget } from "next-cloudinary";
+import { ADToBS, BSToAD } from "bikram-sambat-js";
 
 const TeacherForm = ({
   type,
@@ -28,11 +29,38 @@ const TeacherForm = ({
     handleSubmit,
     formState: { errors },
     setError,
+    setValue,
   } = useForm<TeacherSchema>({
     resolver: zodResolver(teacherSchema),
   });
 
   const [img, setImg] = useState<any>();
+  const [bsBirthday, setBsBirthday] = useState<string>("");
+
+  // Convert AD date to BS when component mounts or data changes
+  useEffect(() => {
+    if (data?.birthday) {
+      const adDate = new Date(data.birthday);
+      const bsDate = ADToBS(adDate.toISOString().split('T')[0]);
+      setBsBirthday(bsDate);
+    }
+  }, [data]);
+
+  // Handle BS date change
+  const handleBSDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const bsDate = e.target.value;
+    setBsBirthday(bsDate);
+    
+    // Convert BS date to AD and set form value
+    try {
+      const adDate = BSToAD(bsDate);
+      // Convert to ISO string and create a new Date object
+      const dateObj = new Date(adDate);
+      setValue('birthday', dateObj.toISOString());
+    } catch (error) {
+      console.error('Invalid BS date format');
+    }
+  };
 
   const [state, formAction] = useFormState(
     type === "create" ? createTeacher : updateTeacher,
@@ -154,24 +182,21 @@ const TeacherForm = ({
           register={register}
           error={errors.bloodType}
         />
-        <InputField
-          label="Birthday"
-          name="birthday"
-          defaultValue={data?.birthday.toISOString().split("T")[0]}
-          register={register}
-          error={errors.birthday}
-          type="date"
-        />
-        {data && (
-          <InputField
-            label="Id"
-            name="id"
-            defaultValue={data?.id}
-            register={register}
-            error={errors?.id}
-            hidden
+        <div className="flex flex-col gap-2 w-full md:w-1/4">
+          <label className="text-xs text-gray-500">Birthday (BS)</label>
+          <input
+            type="text"
+            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+            placeholder="YYYY-MM-DD"
+            value={bsBirthday}
+            onChange={handleBSDateChange}
           />
-        )}
+          {errors.birthday?.message && (
+            <p className="text-xs text-red-400">
+              {errors.birthday.message.toString()}
+            </p>
+          )}
+        </div>
         <div className="flex flex-col gap-2 w-full md:w-1/4">
           <label className="text-xs text-gray-500">Sex</label>
           <select
@@ -209,39 +234,38 @@ const TeacherForm = ({
           )}
         </div>
         <CldUploadWidget
-  uploadPreset="school"
-  onSuccess={(result, { widget }) => {
-    setImg(result.info); // Store the image URL
-    widget.close();
-  }}
->
-  {({ open }) => {
-    return (
-      <div className="flex flex-col items-center gap-2">
-        <div
-          className="text-xs text-gray-500 flex items-center gap-2 cursor-pointer"
-          onClick={() => open()}
+          uploadPreset="school"
+          onSuccess={(result, { widget }) => {
+            setImg(result.info);
+            widget.close();
+          }}
         >
-          <Image src="/upload.png" alt="" width={28} height={28} />
-          <span>Upload a photo</span>
-        </div>
+          {({ open }) => {
+            return (
+              <div className="flex flex-col items-center gap-2">
+                <div
+                  className="text-xs text-gray-500 flex items-center gap-2 cursor-pointer"
+                  onClick={() => open()}
+                >
+                  <Image src="/upload.png" alt="" width={28} height={28} />
+                  <span>Upload a photo</span>
+                </div>
 
-        {/* Show Image Preview */}
-        {img && (
-          <div className="mt-2">
-            <Image
-              src={img.secure_url}
-              alt="Uploaded Image Preview"
-              width={100}
-              height={100}
-              className="rounded-lg border"
-            />
-          </div>
-        )}
-      </div>
-    );
-  }}
-</CldUploadWidget>
+                {img && (
+                  <div className="mt-2">
+                    <Image
+                      src={img.secure_url}
+                      alt="Uploaded Image Preview"
+                      width={100}
+                      height={100}
+                      className="rounded-lg border"
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          }}
+        </CldUploadWidget>
       </div>
       {state.error && (
         <span className="text-red-500">Something went wrong!</span>

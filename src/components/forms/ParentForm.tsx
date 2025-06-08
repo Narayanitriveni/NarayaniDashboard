@@ -10,7 +10,7 @@ import { useFormState } from "react-dom";
 import { createParent, updateParent } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-
+import { ADToBS, BSToAD } from "bikram-sambat-js";
 
 const ParentForm = ({
   type,
@@ -27,11 +27,37 @@ const ParentForm = ({
     register,
     handleSubmit,
     formState: { errors },
+    setValue,
   } = useForm<ParentSchema>({
     resolver: zodResolver(parentSchema),
   });
 
-  
+  const [bsBirthday, setBsBirthday] = useState<string>("");
+
+  // Convert AD date to BS when component mounts or data changes
+  useEffect(() => {
+    if (data?.birthday) {
+      const adDate = new Date(data.birthday);
+      const bsDate = ADToBS(adDate.toISOString().split('T')[0]);
+      setBsBirthday(bsDate);
+    }
+  }, [data]);
+
+  // Handle BS date change
+  const handleBSDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const bsDate = e.target.value;
+    setBsBirthday(bsDate);
+    
+    // Convert BS date to AD and set form value
+    try {
+      const adDate = BSToAD(bsDate);
+      // Create a new Date object directly from the AD date string
+      const dateObj = new Date(adDate);
+      setValue('birthday', dateObj);
+    } catch (error) {
+      console.error('Invalid BS date format');
+    }
+  };
 
   const [state, formAction] = useFormState(
     type === "create" ? createParent : updateParent,
@@ -127,13 +153,27 @@ const ParentForm = ({
           register={register}
           error={errors.address}
         />
+        <div className="flex flex-col gap-2 w-full md:w-1/4">
+          <label className="text-xs text-gray-500">Birthday (BS)</label>
+          <input
+            type="text"
+            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+            placeholder="YYYY-MM-DD"
+            value={bsBirthday}
+            onChange={handleBSDateChange}
+          />
+          {errors.birthday?.message && (
+            <p className="text-xs text-red-400">
+              {errors.birthday.message.toString()}
+            </p>
+          )}
+        </div>
         <InputField
           label="Student IDs(Optional)"
           name="studentId"
           defaultValue={type === "update" ? existingStudentIds : ""}
           register={register}
           error={errors?.studentId}
-        
         />
 
         {data && (

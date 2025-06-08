@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
+import { ADToBS } from "bikram-sambat-js"
 
 interface TimelineEvent {
   id: string
@@ -30,11 +31,15 @@ export function TimelineSchedule({ events, initialDate = new Date() }: TimelineS
 
   // Format date for display
   const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-    }).format(date)
+    const bsDate = ADToBS(date.toISOString().split('T')[0]);
+    const [year, month, day] = bsDate.split('-').map(Number);
+    const monthNames = [
+      'बैशाख', 'जेठ', 'आषाढ', 'श्रावण', 'भाद्र', 'आश्विन',
+      'कार्तिक', 'मंसिर', 'पौष', 'माघ', 'फाल्गुन', 'चैत्र'
+    ];
+    const weekDays = ['आइत', 'सोम', 'मंगल', 'बुध', 'बिहि', 'शुक्र', 'शनि'];
+    const weekDay = weekDays[date.getDay()];
+    return `${weekDay}, ${monthNames[month - 1]} ${day}`;
   }
 
   // Navigate to previous/next day

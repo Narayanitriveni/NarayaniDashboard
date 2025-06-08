@@ -4,11 +4,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import InputField from "../InputField";
 import { useFormState } from "react-dom";
-import { Dispatch, SetStateAction, useEffect } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { teacherAttendanceSchema, TeacherAttendanceSchema } from "@/lib/formValidationSchemas";
 import { createTeacherAttendance, updateTeacherAttendance } from "@/lib/actions";
+import BikramSambatDatePicker from "../BikramSambatDatePicker";
+import { BSToAD } from "bikram-sambat-js";
 
 type FormData = {
   id?: number;
@@ -34,6 +36,7 @@ const TeacherAttendanceForm = ({
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(teacherAttendanceSchema),
@@ -55,6 +58,12 @@ const TeacherAttendanceForm = ({
       error: false,
     }
   );
+
+  const handleDateSelect = (date: { year: number; month: number; day: number }) => {
+    const bsDateString = `${date.year}-${date.month.toString().padStart(2, '0')}-${date.day.toString().padStart(2, '0')}`;
+    const adDateString = BSToAD(bsDateString);
+    setValue('date', new Date(adDateString).toISOString().split('T')[0]);
+  };
 
   const onSubmit = handleSubmit((formData) => {
     if (type === "update" && !formData.id) {
@@ -127,13 +136,17 @@ const TeacherAttendanceForm = ({
             </div>
           </div>
 
-          <InputField
-            label="Date"
-            name="date"
-            type="date"
-            register={register}
-            error={errors?.date}
-          />
+          <div className="w-full md:w-[48%]">
+            <div className="flex flex-col gap-2">
+              <label className="text-xs text-gray-500">Date (Bikram Sambat)</label>
+              <BikramSambatDatePicker onDateSelect={handleDateSelect} />
+              {errors.date?.message && (
+                <p className="text-xs text-red-400">
+                  {errors.date.message.toString()}
+                </p>
+              )}
+            </div>
+          </div>
 
           <div className="w-full md:w-[48%]">
             <div className="flex flex-col gap-2">

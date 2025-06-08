@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import { format } from 'date-fns';
+import { ADToBS } from 'bikram-sambat-js';
 
 type StudentWithDetails = {
   id: string;
@@ -34,7 +35,18 @@ export const StudentIDCard = ({
   schoolYear?: string;
   expiryDate?: string;
 }) => {
-  const formattedBirthday = format(new Date(student.birthday), 'dd/MM/yyyy');
+  const nepaliMonths = [
+    'बैशाख', 'जेठ', 'आषाढ', 'श्रावण', 'भाद्र', 'आश्विन',
+    'कार्तिक', 'मंसिर', 'पौष', 'माघ', 'फाल्गुन', 'चैत्र'
+  ];
+
+  const formatBSDate = (date: Date) => {
+    const bsDate = ADToBS(date.toISOString().split('T')[0]);
+    const [year, month, day] = bsDate.split('-').map(Number);
+    return `${nepaliMonths[month - 1]} ${day}, ${year}`;
+  };
+
+  const formattedBirthday = formatBSDate(new Date(student.birthday));
 
   return (
     <div id="student-id-card" className="bg-white rounded-lg shadow-xl overflow-hidden w-80 mx-auto">
@@ -61,31 +73,28 @@ export const StudentIDCard = ({
       </div>
 
       {/* Photo and basic info */}
-      <div className="p-4 flex">
-        <div className="mr-4">
-          {student.img ? (
-            <img
-              src={student.img} 
-              alt={`${student.name}'s photo`} 
-              width={80} 
-              height={100} 
-              className="object-cover border-2 border-gray-200 rounded"
-              crossOrigin="anonymous"
-            />
-          ) : (
-            <div className="w-20 h-24 bg-gray-200 flex items-center justify-center rounded border-2 border-gray-300">
-              <span className="text-gray-400 text-xs">{student.sex === 'MALE' ? '♂' : '♀'}</span>
-            </div>
-          )}
-        </div>
-
-        <div className="flex-1">
-          <h2 className="text-lg font-bold text-gray-800">{student.name} {student.surname}</h2>
-          <div className="mt-1 px-2 py-0.5 bg-blue-100 text-blue-800 text-xs font-medium rounded-full inline-block">
-            {student.StudentId}
+      <div className="p-4">
+        <div className="flex gap-4">
+          <div className="w-24 h-32 bg-gray-100 rounded-lg overflow-hidden">
+            {student.img ? (
+              <img
+                src={student.img}
+                alt={`${student.name}'s photo`}
+                className="w-full h-full object-cover"
+                crossOrigin="anonymous"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-gray-400">
+                No Photo
+              </div>
+            )}
           </div>
-          <p className="text-sm text-gray-600 mt-1">Class: {student.class.name}</p>
-          <p className="text-sm text-gray-600">Grade: {student.grade.level}</p>
+          <div className="flex-1">
+            <h2 className="text-lg font-semibold">{student.name} {student.surname}</h2>
+            <p className="text-sm text-gray-600">ID: {student.StudentId}</p>
+            <p className="text-sm text-gray-600">Class: {student.class.name}</p>
+            <p className="text-sm text-gray-600">Grade: {student.grade.level}</p>
+          </div>
         </div>
       </div>
 

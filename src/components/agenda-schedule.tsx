@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
+import { ADToBS } from "bikram-sambat-js"
 
 interface AgendaEvent {
   id: string
@@ -49,7 +50,16 @@ export function AgendaSchedule({ events, initialDate = new Date(), daysToShow = 
     const end = new Date(currentDate)
     end.setDate(end.getDate() + daysToShow - 1)
 
-    return `${new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(start)} - ${new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(end)}`
+    const startBS = ADToBS(start.toISOString().split('T')[0]);
+    const endBS = ADToBS(end.toISOString().split('T')[0]);
+    const [startYear, startMonth, startDay] = startBS.split('-').map(Number);
+    const [endYear, endMonth, endDay] = endBS.split('-').map(Number);
+    const monthNames = [
+      'बैशाख', 'जेठ', 'आषाढ', 'श्रावण', 'भाद्र', 'आश्विन',
+      'कार्तिक', 'मंसिर', 'पौष', 'माघ', 'फाल्गुन', 'चैत्र'
+    ];
+
+    return `${monthNames[startMonth - 1]} ${startDay} - ${monthNames[endMonth - 1]} ${endDay}`;
   }
 
   // Get days to display
@@ -67,11 +77,15 @@ export function AgendaSchedule({ events, initialDate = new Date(), daysToShow = 
 
   // Format date for display
   const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat("en-US", {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-    }).format(date)
+    const bsDate = ADToBS(date.toISOString().split('T')[0]);
+    const [year, month, day] = bsDate.split('-').map(Number);
+    const monthNames = [
+      'बैशाख', 'जेठ', 'आषाढ', 'श्रावण', 'भाद्र', 'आश्विन',
+      'कार्तिक', 'मंसिर', 'पौष', 'माघ', 'फाल्गुन', 'चैत्र'
+    ];
+    const weekDays = ['आइतबार', 'सोमबार', 'मंगलबार', 'बुधबार', 'बिहिबार', 'शुक्रबार', 'शनिबार'];
+    const weekDay = weekDays[date.getDay()];
+    return `${weekDay}, ${monthNames[month - 1]} ${day}`;
   }
 
   function isOverlap(a: { startTime: string, endTime: string }, b: { startTime: string, endTime: string }) {

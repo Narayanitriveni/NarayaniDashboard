@@ -6,9 +6,11 @@ import InputField from "../InputField";
 import { assignmentSchema, AssignmentSchema } from "@/lib/formValidationSchemas";
 import { createAssignment, updateAssignment } from "@/lib/actions";
 import { useFormState } from "react-dom";
-import { Dispatch, SetStateAction, useEffect } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
+import BikramSambatDatePicker from "../BikramSambatDatePicker";
+import { BSToAD } from "bikram-sambat-js";
 
 const AssignmentForm = ({
   type,
@@ -24,6 +26,7 @@ const AssignmentForm = ({
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<AssignmentSchema>({
     resolver: zodResolver(assignmentSchema),
@@ -53,6 +56,18 @@ const AssignmentForm = ({
 
   const { lessons } = relatedData;
 
+  const handleStartDateSelect = (date: { year: number; month: number; day: number }) => {
+    const bsDateString = `${date.year}-${date.month.toString().padStart(2, '0')}-${date.day.toString().padStart(2, '0')}`;
+    const adDateString = BSToAD(bsDateString);
+    setValue('startDate', new Date(adDateString));
+  };
+
+  const handleDueDateSelect = (date: { year: number; month: number; day: number }) => {
+    const bsDateString = `${date.year}-${date.month.toString().padStart(2, '0')}-${date.day.toString().padStart(2, '0')}`;
+    const adDateString = BSToAD(bsDateString);
+    setValue('dueDate', new Date(adDateString));
+  };
+
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
       <h1 className="text-xl font-semibold">
@@ -66,24 +81,6 @@ const AssignmentForm = ({
           defaultValue={data?.title}
           register={register}
           error={errors?.title}
-        />
-
-        <InputField
-          label="Start Date"
-          name="startDate"
-          type="datetime-local"
-          defaultValue={data?.startDate}
-          register={register}
-          error={errors?.startDate}
-        />
-
-        <InputField
-          label="Due Date"
-          name="dueDate"
-          type="datetime-local"
-          defaultValue={data?.dueDate}
-          register={register}
-          error={errors?.dueDate}
         />
 
         {data && (
@@ -113,6 +110,28 @@ const AssignmentForm = ({
           {errors.lessonId?.message && (
             <p className="text-xs text-red-400">
               {errors.lessonId.message.toString()}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="flex justify-between flex-wrap gap-4">
+        <div className="flex flex-col gap-2 w-full md:w-1/2">
+          <label className="text-xs text-gray-500">Start Date (Bikram Sambat)</label>
+          <BikramSambatDatePicker onDateSelect={handleStartDateSelect} />
+          {errors.startDate?.message && (
+            <p className="text-xs text-red-400">
+              {errors.startDate.message.toString()}
+            </p>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-2 w-full md:w-1/2">
+          <label className="text-xs text-gray-500">Due Date (Bikram Sambat)</label>
+          <BikramSambatDatePicker onDateSelect={handleDueDateSelect} />
+          {errors.dueDate?.message && (
+            <p className="text-xs text-red-400">
+              {errors.dueDate.message.toString()}
             </p>
           )}
         </div>

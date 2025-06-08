@@ -1,4 +1,4 @@
-  import FormContainer from "@/components/FormContainer";
+import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
@@ -8,6 +8,7 @@ import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Announcement, Class } from "@prisma/client";
 import Image from "next/image";
 import { auth } from "@clerk/nextjs/server";
+import { ADToBS } from "bikram-sambat-js";
 
 type AnnouncementList = Announcement & { class: Class | null };
 
@@ -62,29 +63,31 @@ const AnnouncementListPage = async (
       : []),
   ];
 
-  const renderRow = (item: AnnouncementList) => (
-    <tr
-      key={item.id}
-      className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
-    >
-      <td className="p-4">{item.title}</td>
-      <td className="hidden md:table-cell">{item.description}</td>
-      <td>{item.class?.name || "-"}</td>
-      <td className="hidden md:table-cell">
-        {new Date(item.date).toLocaleString("en-US", {
-          dateStyle: "medium",
-        })}
-      </td>
-      {role === "admin" && (
-        <td>
-          <div className="flex items-center gap-2">
-            <FormContainer table="announcement" type="update" data={item} />
-            <FormContainer table="announcement" type="delete" id={item.id} />
-          </div>
-        </td>
-      )}
-    </tr>
-  );
+  const renderRow = (item: AnnouncementList) => {
+    const date = new Date(item.date);
+    const bsDate = ADToBS(date.toISOString().split("T")[0]);
+    const time = date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+
+    return (
+      <tr
+        key={item.id}
+        className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
+      >
+        <td className="p-4">{item.title}</td>
+        <td className="hidden md:table-cell">{item.description}</td>
+        <td>{item.class?.name || "-"}</td>
+        <td className="hidden md:table-cell">{`${bsDate} ${time}`}</td>
+        {role === "admin" && (
+          <td>
+            <div className="flex items-center gap-2">
+              <FormContainer table="announcement" type="update" data={item} />
+              <FormContainer table="announcement" type="delete" id={item.id} />
+            </div>
+          </td>
+        )}
+      </tr>
+    );
+  };
 
   const { page, sort, direction, ...queryParams } = searchParams;
   const p = page ? parseInt(page) : 1;

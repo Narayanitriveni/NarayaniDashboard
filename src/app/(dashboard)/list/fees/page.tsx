@@ -11,6 +11,7 @@ import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { redirect } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { ADToBS } from "bikram-sambat-js";
 
 type FeeWithRelations = Fee & {
   student: Student & { class: Class };
@@ -90,55 +91,60 @@ const FeesListPage = async (
       : []),
   ];
 
-  const renderRow = (fee: FeeWithRelations) => (
-    <tr
-      key={fee.id}
-      className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
-    >
-      <td className="p-4">{`${fee.student.name} ${fee.student.surname}`}</td>
-      <td>
-        {(() => {
-          const className = fee.student.class.name.replace('Class ', '');
-          const [grade, section] = className.split('-');
-          return section ? `${grade}${section}` : grade;
-        })()}
-      </td>
-      <td>{Number(fee.totalAmount).toLocaleString()}</td>
-      <td>{Number(fee.totalAmount - fee.paidAmount).toLocaleString()}</td>
+  const renderRow = (fee: FeeWithRelations) => {
+    const dueDate = new Date(fee.dueDate);
+    const bsDate = ADToBS(dueDate.toISOString().split('T')[0]);
+    const [year, month, day] = bsDate.split('-').map(Number);
+    
+    const nepaliMonths = [
+      'बैशाख', 'जेठ', 'आषाढ', 'श्रावण', 'भाद्र', 'आश्विन',
+      'कार्तिक', 'मंसिर', 'पौष', 'माघ', 'फाल्गुन', 'चैत्र'
+    ];
 
-      <td>
-        {new Date(fee.dueDate).toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        })}
-      </td>
-      <td>
-        <span className={`px-2 py-1 rounded-full text-xs ${
-          fee.status === "PAID" ? "bg-green-100 text-green-800" :
-          fee.status === "UNPAID" ? "bg-red-100 text-red-800" :
-          fee.status === "PARTIAL" ? "bg-yellow-100 text-yellow-800" :
-          "bg-gray-100 text-gray-800"
-        }`}>
-          {fee.status}
-        </span>
-      </td>
-      {(role === "admin" || role === "accountant") && (
+    return (
+      <tr
+        key={fee.id}
+        className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
+      >
+        <td className="p-4">{`${fee.student.name} ${fee.student.surname}`}</td>
         <td>
-          <div className="flex items-center gap-2">
-            <FormContainer table="fee" type="update" data={fee} />
-            <FormContainer table="fee" type="delete" id={fee.id} />
-            {/* <FormContainer 
-              table="payment" 
-              type="create" 
-              data={{ feeId: fee.id }}
-             
-            /> */}
-          </div>
+          {(() => {
+            const className = fee.student.class.name.replace('Class ', '');
+            const [grade, section] = className.split('-');
+            return section ? `${grade}${section}` : grade;
+          })()}
         </td>
-      )}
-    </tr>
-  );
+        <td>{Number(fee.totalAmount).toLocaleString()}</td>
+        <td>{Number(fee.totalAmount - fee.paidAmount).toLocaleString()}</td>
+        <td>
+          {`${nepaliMonths[month - 1]} ${day}, ${year}`}
+        </td>
+        <td>
+          <span className={`px-2 py-1 rounded-full text-xs ${
+            fee.status === "PAID" ? "bg-green-100 text-green-800" :
+            fee.status === "UNPAID" ? "bg-red-100 text-red-800" :
+            fee.status === "PARTIAL" ? "bg-yellow-100 text-yellow-800" :
+            "bg-gray-100 text-gray-800"
+          }`}>
+            {fee.status}
+          </span>
+        </td>
+        {(role === "admin" || role === "accountant") && (
+          <td>
+            <div className="flex items-center gap-2">
+              <Link href={`/list/fees/student/${fee.student.id}`}>
+                <button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaSky">
+                  <Image src="/view.png" alt="" width={16} height={16} />
+                </button>
+              </Link>
+              <FormContainer table="fee" type="update" data={fee} />
+              <FormContainer table="fee" type="delete" id={fee.id} />
+            </div>
+          </td>
+        )}
+      </tr>
+    );
+  };
 
   const [data, count] = await prisma.$transaction([
     prisma.fee.findMany({

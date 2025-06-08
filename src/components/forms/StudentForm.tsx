@@ -11,6 +11,7 @@ import { createStudent, updateStudent } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { CldUploadWidget } from "next-cloudinary";
+import { ADToBS, BSToAD } from "bikram-sambat-js";
 
 const createWrapper = async (state: { success: boolean; error: boolean }, formData: StudentSchema & { img?: string }) => {
   try {
@@ -48,11 +49,38 @@ const StudentForm = ({
     register,
     handleSubmit,
     formState: { errors },
+    setValue,
   } = useForm<StudentSchema>({
     resolver: zodResolver(studentSchema),
   });
 
   const [img, setImg] = useState<any>();
+  const [bsBirthday, setBsBirthday] = useState<string>("");
+
+  // Convert AD date to BS when component mounts or data changes
+  useEffect(() => {
+    if (data?.birthday) {
+      const adDate = new Date(data.birthday);
+      const bsDate = ADToBS(adDate.toISOString().split('T')[0]);
+      setBsBirthday(bsDate);
+    }
+  }, [data]);
+
+  // Handle BS date change
+  const handleBSDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const bsDate = e.target.value;
+    setBsBirthday(bsDate);
+    
+    // Convert BS date to AD and set form value
+    try {
+      const adDate = BSToAD(bsDate);
+      // Convert to ISO string and create a new Date object
+      const dateObj = new Date(adDate);
+      setValue('birthday', dateObj);
+    } catch (error) {
+      console.error('Invalid BS date format');
+    }
+  };
 
   const [state, formAction] = useFormState(
     type === "create" ? createWrapper : updateWrapper,
@@ -202,14 +230,21 @@ const StudentForm = ({
           register={register}
           error={errors.bloodType}
         />
-        <InputField
-          label="Birthday"
-          name="birthday"
-          defaultValue={data?.birthday?.toISOString().split("T")[0]}
-          register={register}
-          error={errors.birthday}
-          type="date"
-        />
+        <div className="flex flex-col gap-2 w-full md:w-1/4">
+          <label className="text-xs text-gray-500">Birthday (BS)</label>
+          <input
+            type="text"
+            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+            placeholder="YYYY-MM-DD"
+            value={bsBirthday}
+            onChange={handleBSDateChange}
+          />
+          {errors.birthday?.message && (
+            <p className="text-xs text-red-400">
+              {errors.birthday.message.toString()}
+            </p>
+          )}
+        </div>
         <div className="flex flex-col gap-2 w-full md:w-1/4">
           <label className="text-xs text-gray-500">Sex</label>
           <select

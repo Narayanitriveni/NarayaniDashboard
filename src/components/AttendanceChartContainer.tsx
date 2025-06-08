@@ -8,7 +8,6 @@ const AttendanceChartContainer = async () => {
   const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
 
   const lastMonday = new Date(today);
-
   lastMonday.setDate(today.getDate() - daysSinceMonday);
 
   const resData = await prisma.attendance.findMany({
@@ -23,25 +22,24 @@ const AttendanceChartContainer = async () => {
     },
   });
 
-  // console.log(data)
+  // Convert days to BS format
+  const daysOfWeek = ["सोमबार", "मंगलबार", "बुधबार", "बिहिबार", "शुक्रबार", "शनिबार"];
 
-  const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-  const attendanceMap: { [key: string]: { present: number; absent: number } } =
-    {
-      Mon: { present: 0, absent: 0 },
-      Tue: { present: 0, absent: 0 },
-      Wed: { present: 0, absent: 0 },
-      Thu: { present: 0, absent: 0 },
-      Fri: { present: 0, absent: 0 },
-      Sat: { present: 0, absent: 0 },
-    };
+  const attendanceMap: { [key: string]: { present: number; absent: number } } = {
+    "सोमबार": { present: 0, absent: 0 },
+    "मंगलबार": { present: 0, absent: 0 },
+    "बुधबार": { present: 0, absent: 0 },
+    "बिहिबार": { present: 0, absent: 0 },
+    "शुक्रबार": { present: 0, absent: 0 },
+    "शनिबार": { present: 0, absent: 0 },
+  };
 
   resData.forEach((item) => {
     const itemDate = new Date(item.date);
     const dayOfWeek = itemDate.getDay();
     
-    if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+    // Skip Sunday (dayOfWeek === 0)
+    if (dayOfWeek >= 1 && dayOfWeek <= 6) {
       const dayName = daysOfWeek[dayOfWeek - 1];
 
       if (item.status === "PRESENT") {

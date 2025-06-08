@@ -36,11 +36,11 @@ export const teacherSchema = z.object({
     .email({ message: "Invalid email address!" })
     .optional()
     .or(z.literal("")),
-    phone: z.string().min(1, { message: "Phone is required!" }),
+  phone: z.string().min(1, { message: "Phone is required!" }),
   address: z.string(),
   img: z.string().optional(),
   bloodType: z.string().min(1, { message: "Blood Type is required!" }),
-  birthday: z.coerce.date({ message: "Birthday is required!" }),
+  birthday: z.string().min(1, { message: "Birthday is required!" }),
   sex: z.enum(["MALE", "FEMALE"], { message: "Sex is required!" }),
   subjects: z.array(z.string()).optional(), // subject ids
 });
@@ -176,6 +176,7 @@ export const parentSchema = z.object({
   surname: z.string().min(1, { message: "Last name is required!" }),
   phone: z.string().min(1, { message: "Phone is required!" }),
   address: z.string().min(1, { message: "Address is required!" }),
+  birthday: z.coerce.date({ message: "Birthday is required!" }),
   studentId: z.string().optional(),
   parentId: z.string().optional(),
 });

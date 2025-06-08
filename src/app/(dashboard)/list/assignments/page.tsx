@@ -8,6 +8,7 @@ import { Assignment, Class, Prisma, Subject, Teacher } from "@prisma/client";
 import Image from "next/image";
 import { auth } from "@clerk/nextjs/server";
 import FormContainer from "@/components/FormContainer";
+import { ADToBS } from "bikram-sambat-js";
 
 type AssignmentList = Assignment & {
   lesson: {
@@ -72,31 +73,40 @@ const AssignmentListPage = async (
       : []),
   ];
 
-  const renderRow = (item: AssignmentList) => (
-    <tr
-      key={item.id}
-      className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
-    >
-      <td className="flex items-center gap-4 p-4">{item.lesson.subject.name}</td>
-      <td>{item.lesson.class.name}</td>
-      <td className="hidden md:table-cell">
-        {item.lesson.teacher.name + " " + item.lesson.teacher.surname}
-      </td>
-      <td className="hidden md:table-cell">
-        {new Intl.DateTimeFormat("en-US").format(item.dueDate)}
-      </td>
-      <td>
-        <div className="flex items-center gap-2">
-          {(role === "admin" || role === "teacher") && (
-            <>
-              <FormContainer table="assignment" type="update" data={item} />
-              <FormContainer table="assignment" type="delete" id={item.id} />
-            </>
-          )}
-        </div>
-      </td>
-    </tr>
-  );
+  const renderRow = (item: AssignmentList) => {
+    const bsDate = ADToBS(item.dueDate.toISOString().split('T')[0]);
+    const [year, month, day] = bsDate.split('-').map(Number);
+    const monthNames = [
+      'बैशाख', 'जेठ', 'आषाढ', 'श्रावण', 'भाद्र', 'आश्विन',
+      'कार्तिक', 'मंसिर', 'पौष', 'माघ', 'फाल्गुन', 'चैत्र'
+    ];
+
+    return (
+      <tr
+        key={item.id}
+        className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
+      >
+        <td className="flex items-center gap-4 p-4">{item.lesson.subject.name}</td>
+        <td>{item.lesson.class.name}</td>
+        <td className="hidden md:table-cell">
+          {item.lesson.teacher.name + " " + item.lesson.teacher.surname}
+        </td>
+        <td className="hidden md:table-cell">
+          {`${monthNames[month - 1]} ${day}, ${year}`}
+        </td>
+        <td>
+          <div className="flex items-center gap-2">
+            {(role === "admin" || role === "teacher") && (
+              <>
+                <FormContainer table="assignment" type="update" data={item} />
+                <FormContainer table="assignment" type="delete" id={item.id} />
+              </>
+            )}
+          </div>
+        </td>
+      </tr>
+    );
+  };
 
   const { page, sort, direction, ...queryParams } = searchParams;
 

@@ -10,6 +10,8 @@ import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { useSwipeable } from "react-swipeable";
 import { motion, AnimatePresence } from "framer-motion";
+import BikramSambatDatePicker from "../BikramSambatDatePicker";
+import { BSToAD } from "bikram-sambat-js";
 
 const StudentCard = ({ student, onSwipe }: { 
   student: any;
@@ -143,6 +145,12 @@ const AttendanceForm = ({
     }
   };
 
+  const handleDateSelect = (date: { year: number; month: number; day: number }) => {
+    const bsDateString = `${date.year}-${date.month.toString().padStart(2, '0')}-${date.day.toString().padStart(2, '0')}`;
+    const adDateString = BSToAD(bsDateString);
+    setCurrentDate(new Date(adDateString));
+  };
+
   return (
     <div className="flex flex-col gap-8 p-4">
       <h1 className="text-xl font-semibold text-center">Mark Attendance</h1>
@@ -193,13 +201,8 @@ const AttendanceForm = ({
 
         <div className="w-full">
           <div className="flex flex-col gap-2">
-            <label className="text-xs text-gray-500">Date</label>
-            <input
-              type="date"
-              className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
-              value={currentDate.toISOString().split('T')[0]}
-              onChange={(e) => setCurrentDate(new Date(e.target.value))}
-            />
+            <label className="text-xs text-gray-500">Date (Bikram Sambat)</label>
+            <BikramSambatDatePicker onDateSelect={handleDateSelect} />
           </div>
         </div>
 
