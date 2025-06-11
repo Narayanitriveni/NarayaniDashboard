@@ -66,13 +66,22 @@ const ClassListPage = async (
       key={item.id}
       className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
     >
-      <td className="flex items-center gap-4 p-4">{item.name}</td>
-      <td className="hidden md:table-cell">{item.capacity}</td>
-      <td className="hidden md:table-cell">{item.name[0]}</td>
-      <td className="hidden md:table-cell">
+      <td className="p-2 md:p-4">
+        <div className="flex flex-col gap-1">
+          <span className="font-medium">{item.name}</span>
+          <div className="flex flex-wrap gap-2 text-xs text-gray-600 md:hidden">
+            <span>Capacity: {item.capacity}</span>
+            <span>Grade: {item.name[0]}</span>
+            <span>Supervisor: {item.supervisor ? `${item.supervisor.name} ${item.supervisor.surname}` : '-'}</span>
+          </div>
+        </div>
+      </td>
+      <td className="hidden md:table-cell p-2 md:p-4">{item.capacity}</td>
+      <td className="hidden md:table-cell p-2 md:p-4">{item.name[0]}</td>
+      <td className="hidden md:table-cell p-2 md:p-4">
         {item.supervisor ? `${item.supervisor.name} ${item.supervisor.surname}` : '-'}
       </td>
-      <td>
+      <td className="p-2 md:p-4">
         <div className="flex items-center gap-2">
           <Link href={`/list/classes/${item.id}`}>
             <button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaSky">
@@ -134,23 +143,29 @@ const ClassListPage = async (
   ]);
 
   return (
-    <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
+    <div className="bg-white p-2 md:p-4 rounded-md flex-1 m-2 md:m-4 mt-0">
       {/* TOP */}
-      <div className="flex items-center justify-between">
-        <h1 className="hidden md:block text-lg font-semibold">All Classes</h1>
-        <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
-          <TableSearch />
-          <div className="flex items-center gap-4 self-end">
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <h1 className="text-lg font-semibold">All Classes</h1>
+          {role === "admin" && <FormContainer table="class" type="create" />}
+        </div>
+        <div className="flex flex-col sm:flex-row items-center gap-4 w-full">
+          <div className="w-full sm:w-auto">
+            <TableSearch />
+          </div>
+          <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
               <Image src="/filter.png" alt="" width={14} height={14} />
             </button>
             <SortDropdown options={sortOptions} defaultSort="name" />
-            {role === "admin" && <FormContainer table="class" type="create" />}
           </div>
         </div>
       </div>
       {/* LIST */}
-      <Table columns={columns} renderRow={renderRow} data={data} />
+      <div className="overflow-x-auto">
+        <Table columns={columns} renderRow={renderRow} data={data} />
+      </div>
       {/* PAGINATION */}
       <Pagination page={p} count={count} />
     </div>
