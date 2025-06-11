@@ -97,7 +97,7 @@ const DownloadPage = () => {
 
         autoTable(doc, {
           head: [headers],
-          body: tableData,
+          body: tableData as string[][],
           startY: yPosition,
           margin: { top: 15 },
         });
