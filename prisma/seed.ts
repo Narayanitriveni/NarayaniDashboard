@@ -41,17 +41,17 @@ async function main() {
 //   console.log(`Created admin: ${admin.username}`);
 
   // Create accountant
-  const accountant = await prisma.accountant.create({
-    data: {
-      username: 'accountant',
-      name: 'Finance',
-      surname: 'Manager',
-      email: 'finance@school.edu',
-      phone: '123-456-7890',
-      address: '123 School St, Finance Dept',
-    },
-  });
-  console.log(`Created accountant: ${accountant.username}`);
+  // const accountant = await prisma.accountant.create({
+  //   data: {
+  //     username: 'accountant',
+  //     name: 'Finance',
+  //     surname: 'Manager',
+  //     email: 'finance@school.edu',
+  //     phone: '123-456-7890',
+  //     address: '123 School St, Finance Dept',
+  //   },
+  // });
+  // console.log(`Created accountant: ${accountant.username}`);
 
   // Create grades from 1 to 12
   const grades = [];

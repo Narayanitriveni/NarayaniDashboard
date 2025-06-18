@@ -80,6 +80,8 @@ export const studentSchema = z.object({
   classId: z.coerce.number().min(1, { message: "Class is required!" }),
   // Add disability field
   disability: z.enum(["NONE", "VISION", "HEARING", "MOBILITY", "COGNITIVE", "SPEECH", "MENTAL_HEALTH", "OTHER"]),
+  // Add StudentId field
+  StudentId: z.string().optional(),
   // parentId field remains optional
   parentId: z.string().optional()
 });

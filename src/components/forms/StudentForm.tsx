@@ -150,7 +150,7 @@ const StudentForm = ({
         Personal Information
       </span>
       <CldUploadWidget
-        uploadPreset="school"
+        uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "school"}
         onSuccess={(result, { widget }) => {
           setImg(result.info);
           widget.close();

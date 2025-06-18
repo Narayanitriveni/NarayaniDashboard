@@ -29,7 +29,7 @@ model Student {
   gradeId     Int
   birthday    DateTime
   StudentId   String         @unique
-  IEMISCODE   Int            @unique
+  IEMISCODE   Int
   disability  DisabilityType @default(NONE)
   fatherName  String
   motherName  String

@@ -3,11 +3,20 @@
 import { useState } from 'react';
 import { showNotification } from '@/lib/toast';
 
+interface UploadStats {
+  totalRows: number;
+  processedRows: number;
+  successCount: number;
+  errorCount: number;
+  skippedRows: number;
+}
+
 export default function UploadStudentsPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState<{
     message?: string;
     errors?: string[];
+    stats?: UploadStats;
   } | null>(null);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -21,6 +30,7 @@ export default function UploadStudentsPage() {
     formData.append('file', file);
 
     try {
+      console.log('Starting file upload:', file.name);
       const response = await fetch('/api/upload-students', {
         method: 'POST',
         body: formData,
@@ -29,9 +39,11 @@ export default function UploadStudentsPage() {
       const result = await response.json();
 
       if (!response.ok) {
+        console.error('Upload failed:', result.error);
         throw new Error(result.error || 'Upload failed');
       }
 
+      console.log('Upload completed:', result);
       setUploadResult(result);
       showNotification.success(result.message);
       
@@ -39,6 +51,7 @@ export default function UploadStudentsPage() {
         showNotification.warning(`Some records failed to upload. Check the details below.`);
       }
     } catch (error: any) {
+      console.error('Error during upload:', error);
       showNotification.error(error.message);
     } finally {
       setIsUploading(false);
@@ -47,6 +60,7 @@ export default function UploadStudentsPage() {
 
   const handleDownloadTemplate = async () => {
     try {
+      console.log('Downloading template...');
       const response = await fetch('/api/generate-template');
       if (!response.ok) throw new Error('Failed to download template');
       
@@ -59,7 +73,9 @@ export default function UploadStudentsPage() {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      console.log('Template downloaded successfully');
     } catch (error: any) {
+      console.error('Error downloading template:', error);
       showNotification.error('Failed to download template');
     }
   };
@@ -74,11 +90,30 @@ export default function UploadStudentsPage() {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Excel File Template
             </label>
-            <p className="text-sm text-gray-600 mb-4">
-              Your Excel file should include the following columns:
-              username, name, surname, motherName, fatherName, IEMISCODE, email (optional),
-              phone (optional), address, bloodType, sex, birthday, gradeId, classId, parentId (optional)
-            </p>
+            <div className="text-sm text-gray-600 mb-4">
+              <p className="mb-2">Your Excel file should include the following columns:</p>
+              
+              <div className="mb-4">
+                <strong>Required columns:</strong>
+                <ul className="list-disc pl-5 mt-2">
+                  <li>fullName (will be split into name and surname)</li>
+                  <li>gender (MALE/FEMALE)</li>
+                  <li>fatherName</li>
+                  <li>motherName</li>
+                  <li>dob (date of birth)</li>
+                </ul>
+              </div>
+
+              <div>
+                <strong>Note:</strong>
+                <ul className="list-disc pl-5 mt-2">
+                  <li>Full name will be automatically split - first word as name, rest as surname</li>
+                  <li>Username will be generated automatically (name + 3 random digits)</li>
+                  <li>Default values will be set for: disability (NONE), blood group (N/A)</li>
+                  <li>Class and grade IDs will need to be set manually after upload</li>
+                </ul>
+              </div>
+            </div>
             <button
               onClick={handleDownloadTemplate}
               className="text-blue-600 hover:text-blue-800 text-sm"
@@ -117,14 +152,29 @@ export default function UploadStudentsPage() {
               <h2 className="text-lg font-semibold mb-2">Upload Results</h2>
               <p className="text-sm text-gray-600 mb-4">{uploadResult.message}</p>
               
+              {uploadResult.stats && (
+                <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">Upload Statistics:</h3>
+                  <ul className="text-sm text-gray-600 space-y-1">
+                    <li>Total Rows: {uploadResult.stats.totalRows}</li>
+                    <li>Processed Rows: {uploadResult.stats.processedRows}</li>
+                    <li>Successful Uploads: {uploadResult.stats.successCount}</li>
+                    <li>Failed Uploads: {uploadResult.stats.errorCount}</li>
+                    <li>Skipped Rows: {uploadResult.stats.skippedRows}</li>
+                  </ul>
+                </div>
+              )}
+              
               {uploadResult.errors && uploadResult.errors.length > 0 && (
                 <div className="mt-4">
                   <h3 className="text-sm font-medium text-gray-700 mb-2">Errors:</h3>
-                  <ul className="text-sm text-red-600 list-disc pl-5">
-                    {uploadResult.errors.map((error, index) => (
-                      <li key={index}>{error}</li>
-                    ))}
-                  </ul>
+                  <div className="max-h-60 overflow-y-auto">
+                    <ul className="text-sm text-red-600 list-disc pl-5">
+                      {uploadResult.errors.map((error, index) => (
+                        <li key={index} className="mb-1">{error}</li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
               )}
             </div>

@@ -23,6 +23,7 @@ import prisma from "./prisma";
 import { clerkClient } from "@clerk/nextjs/server";
 import { calculateFeeStatus } from "./feeHelpers";
 import { revalidatePath } from "next/cache";
+import { cleanupImageOnFailure } from "./cloudinary";
 
 type CurrentState = { success: boolean; error: boolean; message?: string };
 
@@ -202,6 +203,11 @@ export const createTeacher = async (
     } catch (prismaError: any) {
       console.error("Prisma error:", prismaError);
 
+      // Clean up image from Cloudinary if it exists
+      if (data.img) {
+        await cleanupImageOnFailure(data.img, "teacher creation");
+      }
+
       // Rollback - Delete user from Clerk if Prisma fails
       await (await clerkClient()).users.deleteUser(user.id);
       console.log("Clerk user deleted due to Prisma failure:", user.id);
@@ -210,6 +216,12 @@ export const createTeacher = async (
     }
   } catch (clerkError: any) {
     console.error("Clerk error:", clerkError);
+    
+    // Clean up image from Cloudinary if Clerk fails
+    if (data.img) {
+      await cleanupImageOnFailure(data.img, "teacher creation (Clerk failure)");
+    }
+    
     return { success: false, error: true, message: clerkError.message };
   }
 };
@@ -234,32 +246,57 @@ export const updateTeacher = async (
       select: { img: true }
     });
     console.log("teacher updated in clerk ",user.id)
-    await prisma.teacher.update({
-      where: {
-        id: data.id,
-      },
-      data: {
-        username: data.username,
-        name: data.name,
-        surname: data.surname,
-        email: data.email || null,
-        phone: data.phone || null,
-        address: data.address,
-        ...(data.img ? { img: data.img } : { img: currentTeacher?.img }),
-        bloodType: data.bloodType,
-        sex: data.sex,
-        birthday: data.birthday,
-        subjects: {
-          set: data.subjects?.map((subjectId: string) => ({
-            id: parseInt(subjectId),
-          })),
+    
+    try {
+      await prisma.teacher.update({
+        where: {
+          id: data.id,
         },
-      },
-    });
-    // revalidatePath("/list/teachers");
-    return { success: true, error: false };
+        data: {
+          username: data.username,
+          name: data.name,
+          surname: data.surname,
+          email: data.email || null,
+          phone: data.phone || null,
+          address: data.address,
+          ...(data.img ? { img: data.img } : { img: currentTeacher?.img }),
+          bloodType: data.bloodType,
+          sex: data.sex,
+          birthday: data.birthday,
+          subjects: {
+            set: data.subjects?.map((subjectId: string) => ({
+              id: parseInt(subjectId),
+            })),
+          },
+        },
+      });
+      // revalidatePath("/list/teachers");
+      return { success: true, error: false };
+    } catch (prismaError: any) {
+      console.error("Prisma error in updateTeacher:", prismaError);
+      
+      // Clean up new image from Cloudinary if update fails and a new image was uploaded
+      if (data.img && data.img !== currentTeacher?.img) {
+        await cleanupImageOnFailure(data.img, "teacher update");
+      }
+      
+      return { success: false, error: true, message: prismaError.message };
+    }
   } catch (err) {
     console.log(err);
+    
+    // Clean up new image from Cloudinary if Clerk update fails and a new image was uploaded
+    if (data.img) {
+      const currentTeacher = await prisma.teacher.findUnique({
+        where: { id: data.id },
+        select: { img: true }
+      });
+      
+      if (data.img !== currentTeacher?.img) {
+        await cleanupImageOnFailure(data.img, "teacher update (Clerk failure)");
+      }
+    }
+    
     return { success: false, error: true };
   }
 };
@@ -271,6 +308,12 @@ export const deleteTeacher = async (
   const id = data.get("id") as string;
   console.log(id);
   try {
+    // Get teacher info before deletion to clean up image
+    const teacher = await prisma.teacher.findUnique({
+      where: { id: id },
+      select: { img: true }
+    });
+
     await (await clerkClient()).users.deleteUser(id);
     const teacherExists = await prisma.teacher.findUnique({
       where: { id: id },
@@ -286,6 +329,11 @@ export const deleteTeacher = async (
         id: id,
       }
     });
+
+    // Clean up image from Cloudinary after successful deletion
+    if (teacher?.img) {
+      await cleanupImageOnFailure(teacher.img, "teacher deletion");
+    }
 
     // revalidatePath("/list/teachers");
     return { success: true, error: false };
@@ -310,17 +358,15 @@ export const createStudent = async (
       return { success: false, error: true, message: "Class capacity is full." };
     }
 
-    // Generate unique student ID with format YYYYMMDDXX001
-    // Where YYYYMMDD is current date, XX are name initials
-    const today = new Date();
-    const dateString = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`;
-    const nameInitials = `${data.name.charAt(0)}${data.surname.charAt(0)}`.toUpperCase();
-    
-    // Generate random 3 digits for the end of the ID
-    const randomDigits = Math.floor(Math.random() * 900) + 100; // Random number between 100-999
-    
-    // Create the student ID with format YYYYMMDDXX[random 3 digits]
-    const studentId = `${dateString}${nameInitials}${randomDigits}`;
+    // Only generate StudentId if not provided
+    let studentId = data.StudentId;
+    if (!studentId) {
+      const today = new Date();
+      const dateString = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`;
+      const nameInitials = `${data.name.charAt(0)}${data.surname.charAt(0)}`.toUpperCase();
+      const randomDigits = Math.floor(100 + Math.random() * 900);
+      studentId = `${dateString}${nameInitials}${randomDigits}`;
+    }
 
     // Create user in Clerk
     const user = await (await clerkClient()).users.createUser({
@@ -365,6 +411,11 @@ export const createStudent = async (
     } catch (prismaError: any) {
       console.error("Prisma error:", prismaError);
 
+      // Clean up image from Cloudinary if it exists
+      if (data.img) {
+        await cleanupImageOnFailure(data.img, "student creation");
+      }
+
       // Rollback - Delete user from Clerk if Prisma fails
       await (await clerkClient()).users.deleteUser(user.id);
       console.log("Clerk user deleted due to Prisma failure:", user.id);
@@ -373,6 +424,12 @@ export const createStudent = async (
     }
   } catch (clerkError: any) {
     console.error("Clerk error:", clerkError);
+    
+    // Clean up image from Cloudinary if Clerk fails
+    if (data.img) {
+      await cleanupImageOnFailure(data.img, "student creation (Clerk failure)");
+    }
+    
     return { success: false, error: true, message: clerkError.message };
   }
 };
@@ -397,34 +454,58 @@ export const updateStudent = async (
       select: {img: true}
     });
     
-    await prisma.student.update({
-      where: {
-        id: data.id,
-      },
-      data: {
-        username: data.username,
-        name: data.name,
-        surname: data.surname,
-        motherName: data.motherName,
-        fatherName: data.fatherName,
-        IEMISCODE: data.IEMISCODE,
-        disability: data.disability || "NONE",
-        email: data.email || null,
-        phone: data.phone || null,
-        address: data.address,
-        ...(data.img ? { img: data.img } : { img: currentStudent?.img }),
-        bloodType: data.bloodType,
-        sex: data.sex,
-        birthday: data.birthday,
-        gradeId: data.gradeId,
-        classId: data.classId,
-        parentId: data.parentId || null,
-      },
-    });
-  
-    return { success: true, error: false };
+    try {
+      await prisma.student.update({
+        where: {
+          id: data.id,
+        },
+        data: {
+          username: data.username,
+          name: data.name,
+          surname: data.surname,
+          motherName: data.motherName,
+          fatherName: data.fatherName,
+          IEMISCODE: data.IEMISCODE,
+          disability: data.disability || "NONE",
+          email: data.email || null,
+          phone: data.phone || null,
+          address: data.address,
+          ...(data.img ? { img: data.img } : { img: currentStudent?.img }),
+          bloodType: data.bloodType,
+          sex: data.sex,
+          birthday: data.birthday,
+          gradeId: data.gradeId,
+          classId: data.classId,
+          parentId: data.parentId || null,
+        },
+      });
+    
+      return { success: true, error: false };
+    } catch (prismaError: any) {
+      console.error("Prisma error in updateStudent:", prismaError);
+      
+      // Clean up new image from Cloudinary if update fails and a new image was uploaded
+      if (data.img && data.img !== currentStudent?.img) {
+        await cleanupImageOnFailure(data.img, "student update");
+      }
+      
+      return { success: false, error: true, message: prismaError.message };
+    }
   } catch (err) {
     console.log(err);
+    
+    // Clean up new image from Cloudinary if Clerk update fails and a new image was uploaded
+    if (data.img) {
+      const currentStudent = await prisma.student.findUnique({
+        where: { id: data.id },
+        select: { img: true }
+      });
+      
+      if (data.img !== currentStudent?.img) {
+        await cleanupImageOnFailure(data.img, "student update (Clerk failure)");
+      }
+    }
+    
     return { success: false, error: true };
   }
 };
@@ -435,6 +516,12 @@ export const deleteStudent = async (
   const id = data.get("id") as string;
 
   try {
+    // Get student info before deletion to clean up image
+    const student = await prisma.student.findUnique({
+      where: { id: id },
+      select: { img: true }
+    });
+
     await (await clerkClient()).users.deleteUser(id);
     
     const studentExists = await prisma.student.findUnique({
@@ -451,6 +538,11 @@ export const deleteStudent = async (
         id: id,
       },
     });
+
+    // Clean up image from Cloudinary after successful deletion
+    if (student?.img) {
+      await cleanupImageOnFailure(student.img, "student deletion");
+    }
 
     // revalidatePath("/list/students");
     return { success: true, error: false };
