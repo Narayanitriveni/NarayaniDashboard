@@ -10,7 +10,7 @@ import Image from "next/image";
 import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 
-type ClassList = Class & { supervisor: Teacher };
+type ClassList = Class & { supervisor: Teacher, grade: { level: number } };
 
 const sortOptions = [
   { label: "Class Name (A-Z)", value: "name", direction: "asc" as const },
@@ -71,13 +71,15 @@ const ClassListPage = async (
           <span className="font-medium">{item.name}</span>
           <div className="flex flex-wrap gap-2 text-xs text-gray-600 md:hidden">
             <span>Capacity: {item.capacity}</span>
-            <span>Grade: {item.name[0]}</span>
+            <span>Grade: {item.grade ? item.grade.level : <span className="text-red-500">No grade</span>}</span>
             <span>Supervisor: {item.supervisor ? `${item.supervisor.name} ${item.supervisor.surname}` : '-'}</span>
           </div>
         </div>
       </td>
       <td className="hidden md:table-cell p-2 md:p-4">{item.capacity}</td>
-      <td className="hidden md:table-cell p-2 md:p-4">{item.name[0]}</td>
+      <td className="hidden md:table-cell p-2 md:p-4">
+        {item.grade ? item.grade.level : <span className="text-red-500">No grade</span>}
+      </td>
       <td className="hidden md:table-cell p-2 md:p-4">
         {item.supervisor ? `${item.supervisor.name} ${item.supervisor.surname}` : '-'}
       </td>
@@ -128,6 +130,7 @@ const ClassListPage = async (
       where: query,
       include: {
         supervisor: true,
+        grade: true,
       },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
