@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { showNotification } from '@/lib/toast';
 
 interface UploadStats {
@@ -18,16 +18,36 @@ export default function UploadStudentsPage() {
     errors?: string[];
     stats?: UploadStats;
   } | null>(null);
+  const [classes, setClasses] = useState<{ id: number; name: string; gradeId: number }[]>([]);
+  const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetch('/api/upload-students')
+      .then(res => res.json())
+      .then(data => {
+        // Sort by class name as number if possible
+        const sorted = data.slice().sort((a: { name: string }, b: { name: string }) => {
+          const aNum = Number(a.name);
+          const bNum = Number(b.name);
+          if (!isNaN(aNum) && !isNaN(bNum)) {
+            return aNum - bNum;
+          }
+          return a.name.localeCompare(b.name);
+        });
+        setClasses(sorted);
+      });
+  }, []);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !selectedClassId) return;
 
     setIsUploading(true);
     setUploadResult(null);
 
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('currentClass', String(selectedClassId));
 
     try {
       console.log('Starting file upload:', file.name);
@@ -88,6 +108,23 @@ export default function UploadStudentsPage() {
         <div className="bg-white p-6 rounded-lg shadow-md">
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
+              Select Class
+            </label>
+            <select
+              className="block w-full mb-4 border rounded p-2"
+              value={selectedClassId ?? ''}
+              onChange={e => setSelectedClassId(Number(e.target.value) || null)}
+            >
+              <option value="">-- Select a class --</option>
+              {classes.map(cls => (
+                <option key={cls.id} value={cls.id}>
+                  {cls.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Excel File Template
             </label>
             <div className="text-sm text-gray-600 mb-4">
@@ -101,6 +138,7 @@ export default function UploadStudentsPage() {
                   <li>fatherName</li>
                   <li>motherName</li>
                   <li>dob (date of birth)</li>
+                  <li>studentId</li>
                 </ul>
               </div>
 
@@ -110,7 +148,7 @@ export default function UploadStudentsPage() {
                   <li>Full name will be automatically split - first word as name, rest as surname</li>
                   <li>Username will be generated automatically (name + 3 random digits)</li>
                   <li>Default values will be set for: disability (NONE), blood group (N/A)</li>
-                  <li>Class and grade IDs will need to be set manually after upload</li>
+                  <li><b>The selected class will be used for all students in this upload.</b></li>
                 </ul>
               </div>
             </div>
@@ -130,7 +168,7 @@ export default function UploadStudentsPage() {
               type="file"
               accept=".xlsx,.xls"
               onChange={handleFileUpload}
-              disabled={isUploading}
+              disabled={isUploading || !selectedClassId}
               className="block w-full text-sm text-gray-500
                 file:mr-4 file:py-2 file:px-4
                 file:rounded-md file:border-0

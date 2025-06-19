@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import ExcelJS from 'exceljs';
 import { createStudent } from '@/lib/actions';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 // Function to normalize column names
 function normalizeColumnName(columnName: string): string {
@@ -30,7 +33,8 @@ const columnMapping: { [key: string]: string } = {
   'date_of_birth': 'dob',
   'studentid': 'studentId',
   'student_id': 'studentId',
-  'id': 'studentId'
+  'id': 'studentId',
+  'currentclass': 'currentClass',
 };
 
 export async function POST(request: NextRequest) {
@@ -95,6 +99,20 @@ export async function POST(request: NextRequest) {
 
     console.log(`Starting to process ${worksheet.rowCount - 1} rows...`);
 
+    const classIdStr = formData.get('currentClass');
+    if (!classIdStr) {
+      return NextResponse.json({ error: 'No class selected' }, { status: 400 });
+    }
+    const classId = parseInt(classIdStr as string);
+    if (isNaN(classId)) {
+      return NextResponse.json({ error: 'Invalid class selected' }, { status: 400 });
+    }
+    const classObj = await prisma.class.findUnique({ where: { id: classId } });
+    if (!classObj) {
+      return NextResponse.json({ error: 'Class not found' }, { status: 400 });
+    }
+    const gradeId = classObj.gradeId;
+
     // Process each row
     for (let rowNumber = 2; rowNumber <= worksheet.rowCount; rowNumber++) {
       const row = worksheet.getRow(rowNumber);
@@ -149,6 +167,7 @@ export async function POST(request: NextRequest) {
         // Convert DOB to proper format
         rowData.birthday = dob.toISOString();
 
+        // Use classId and gradeId from selection
         // Create student with required fields
         const studentData = {
           username: rowData.username,
@@ -163,8 +182,8 @@ export async function POST(request: NextRequest) {
           address: 'N/A', // Default address
           IEMISCODE: 48073003, // This should be set manually
           StudentId: rowData.studentId, // Using Student ID from Excel
-          gradeId: 3, // This should be set manually
-          classId: 38, // This should be set manually
+          gradeId, // Use looked up gradeId
+          classId, // Use looked up classId
           email: rowData.email,
           password: rowData.password
         };
@@ -224,4 +243,13 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+export async function GET() {
+  // Return all classes with id, name, and gradeId
+  const classes = await prisma.class.findMany({
+    select: { id: true, name: true, gradeId: true },
+    orderBy: { name: 'asc' },
+  });
+  return NextResponse.json(classes);
 } 
