@@ -17,7 +17,7 @@ import {
 } from "@/lib/actions";
 import { useFormState } from "react-dom";
 import { Dispatch, SetStateAction, useEffect } from "react";
-import { toast } from "react-toastify";
+import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 
 const ClassForm = ({
@@ -58,7 +58,7 @@ const ClassForm = ({
 
   useEffect(() => {
     if (state&&state.success) {
-      toast(`Class has been ${type === "create" ? "created" : "updated"}!`);
+      toast.success(`Class has been ${type === "create" ? "created" : "updated"}!`);
       setOpen(false);
       router.refresh();
     }

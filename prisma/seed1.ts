@@ -4,20 +4,20 @@ const prisma = new PrismaClient();
 
 async function main() {
   // Delete existing data for a clean slate
-  // await prisma.student.deleteMany({});
-  // await prisma.class.deleteMany({});
-  // await prisma.subject.deleteMany({});
-  // await prisma.grade.deleteMany({});
+  await prisma.student.deleteMany({});
+  await prisma.class.deleteMany({});
+  await prisma.subject.deleteMany({});
+  await prisma.grade.deleteMany({});
 
   // Create grades 1 to 12
-  // const grades = [];
-  // for (let i = 1; i <= 12; i++) {
-  //   const grade = await prisma.grade.create({
-  //     data: { level: i },
-  //   });
-  //   grades.push(grade);
-  //   console.log(`Created grade: ${grade.level}`);
-  // }
+  const grades = [];
+  for (let i = 1; i <= 12; i++) {
+    const grade = await prisma.grade.create({
+      data: { level: i },
+    });
+    grades.push(grade);
+    console.log(`Created grade: ${grade.level}`);
+  }
 
   // Create subjects
   const subjectNames = [

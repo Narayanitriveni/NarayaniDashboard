@@ -99,8 +99,28 @@ export const createClass = async (
   data: ClassSchema
 ) => {
   try {
+    // If supervisorId is provided, verify the teacher exists
+    if (data.supervisorId) {
+      const teacher = await prisma.teacher.findUnique({
+        where: { id: data.supervisorId }
+      });
+      
+      if (!teacher) {
+        return { 
+          success: false, 
+          error: true, 
+          message: "Supervisor teacher not found" 
+        };
+      }
+    }
+
     await prisma.class.create({
-      data,
+      data: {
+        name: data.name,
+        capacity: data.capacity,
+        gradeId: data.gradeId,
+        supervisorId: data.supervisorId || null // Explicitly set null if not provided
+      },
     });
 
     // revalidatePath("/list/class");
