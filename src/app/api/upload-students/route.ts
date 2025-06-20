@@ -35,6 +35,7 @@ const columnMapping: { [key: string]: string } = {
   'student_id': 'studentId',
   'id': 'studentId',
   'currentclass': 'currentClass',
+  'address': 'address',
 };
 
 export async function POST(request: NextRequest) {
@@ -136,6 +137,12 @@ export async function POST(request: NextRequest) {
           throw new Error(`Missing required values: ${missingValues.join(', ')}`);
         }
 
+        // Address is optional
+        let address: string = 'N/A';
+        if ('address' in rowData) {
+          address = rowData.address ? String(rowData.address) : 'N/A';
+        }
+
         // Split full name into name and surname
         const nameParts = rowData.fullName.split(' ');
         if (nameParts.length < 2) {
@@ -179,7 +186,7 @@ export async function POST(request: NextRequest) {
           birthday: rowData.birthday,
           bloodType: rowData.bloodType,
           disability: rowData.disability,
-          address: 'N/A', // Default address
+          address,
           IEMISCODE: 48073003, // This should be set manually
           StudentId: rowData.studentId, // Using Student ID from Excel
           gradeId, // Use looked up gradeId
