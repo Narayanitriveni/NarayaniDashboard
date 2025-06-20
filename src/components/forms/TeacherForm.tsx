@@ -41,8 +41,13 @@ const TeacherForm = ({
   useEffect(() => {
     if (data?.birthday) {
       const adDate = new Date(data.birthday);
-      const bsDate = ADToBS(adDate.toISOString().split('T')[0]);
-      setBsBirthday(bsDate);
+      const year = adDate.getFullYear();
+      if (!isNaN(adDate.getTime()) && year >= 1913 && year <= 2043) {
+        const bsDate = ADToBS(adDate.toISOString().split('T')[0]);
+        setBsBirthday(bsDate);
+      } else {
+        setBsBirthday("");
+      }
     }
   }, [data]);
 
