@@ -1,42 +1,49 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { showNotification } from '@/lib/toast';
+
+interface UploadStats {
+  totalRows: number;
+  processedRows: number;
+  successCount: number;
+  errorCount: number;
+  skippedRows: number;
+}
 
 export default function UploadTeachersPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState<{
     message?: string;
     errors?: string[];
+    stats?: UploadStats;
   } | null>(null);
+  const [gender, setGender] = useState<'MALE' | 'FEMALE' | ''>('');
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !gender) return;
 
     setIsUploading(true);
     setUploadResult(null);
 
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('gender', gender);
 
     try {
       const response = await fetch('/api/upload-teachers', {
         method: 'POST',
         body: formData,
       });
-
       const result = await response.json();
-
       if (!response.ok) {
         throw new Error(result.error || 'Upload failed');
       }
-
       setUploadResult(result);
       showNotification.success(result.message);
-      
       if (result.errors?.length > 0) {
-        showNotification.warning(`Some records failed to upload. Check the details below.`);
+        showNotification.warning('Some records failed to upload. Check the details below.');
       }
     } catch (error: any) {
       showNotification.error(error.message);
@@ -45,39 +52,59 @@ export default function UploadTeachersPage() {
     }
   };
 
-  const handleDownloadTemplate = async () => {
-    try {
-      const response = await fetch('/api/generate-teacher-template');
-      if (!response.ok) throw new Error('Failed to download template');
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'teacher-upload-template.xlsx';
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (error: any) {
-      showNotification.error('Failed to download template');
-    }
+  const handleDownloadTemplate = () => {
+    // Download a simple template for teachers
+    const url = '/api/generate-template?type=teacher';
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'teacher-upload-template.xlsx';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   return (
     <div className="container mx-auto p-6">
       <div className="max-w-2xl mx-auto">
         <h1 className="text-2xl font-bold mb-6">Upload Teachers</h1>
-        
         <div className="bg-white p-6 rounded-lg shadow-md">
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Select Gender (applies to all teachers in this upload)
+            </label>
+            <select
+              className="block w-full mb-4 border rounded p-2"
+              value={gender}
+              onChange={e => setGender(e.target.value as 'MALE' | 'FEMALE' | '')}
+            >
+              <option value="">-- Select gender --</option>
+              <option value="MALE">Male</option>
+              <option value="FEMALE">Female</option>
+            </select>
+          </div>
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Excel File Template
             </label>
-            <p className="text-sm text-gray-600 mb-4">
-              Your Excel file should include the following columns:
-              username, name, surname, email, phone, address, bloodType, sex, birthday, subjectId
-            </p>
+            <div className="text-sm text-gray-600 mb-4">
+              <p className="mb-2">Your Excel file should include the following columns:</p>
+              <div className="mb-4">
+                <strong>Required columns:</strong>
+                <ul className="list-disc pl-5 mt-2">
+                  <li>Full Name</li>
+                  <li>Contact Number</li>
+                  <li>Date Of Birth</li>
+                </ul>
+              </div>
+              <div>
+                <strong>Note:</strong>
+                <ul className="list-disc pl-5 mt-2">
+                  <li>Other columns will be ignored.</li>
+                  <li>Each teacher will be assigned a random subject from the database.</li>
+                  <li>Gender will be set to the selected value above for all teachers.</li>
+                </ul>
+              </div>
+            </div>
             <button
               onClick={handleDownloadTemplate}
               className="text-blue-600 hover:text-blue-800 text-sm"
@@ -85,7 +112,6 @@ export default function UploadTeachersPage() {
               Download Template
             </button>
           </div>
-
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Upload Excel File
@@ -94,7 +120,7 @@ export default function UploadTeachersPage() {
               type="file"
               accept=".xlsx,.xls"
               onChange={handleFileUpload}
-              disabled={isUploading}
+              disabled={isUploading || !gender}
               className="block w-full text-sm text-gray-500
                 file:mr-4 file:py-2 file:px-4
                 file:rounded-md file:border-0
@@ -103,27 +129,38 @@ export default function UploadTeachersPage() {
                 hover:file:bg-blue-100"
             />
           </div>
-
           {isUploading && (
             <div className="text-center py-4">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-700 mx-auto"></div>
               <p className="mt-2 text-sm text-gray-600">Uploading and processing...</p>
             </div>
           )}
-
           {uploadResult && (
             <div className="mt-6">
               <h2 className="text-lg font-semibold mb-2">Upload Results</h2>
               <p className="text-sm text-gray-600 mb-4">{uploadResult.message}</p>
-              
+              {uploadResult.stats && (
+                <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">Upload Statistics:</h3>
+                  <ul className="text-sm text-gray-600 space-y-1">
+                    <li>Total Rows: {uploadResult.stats.totalRows}</li>
+                    <li>Processed Rows: {uploadResult.stats.processedRows}</li>
+                    <li>Successful Uploads: {uploadResult.stats.successCount}</li>
+                    <li>Failed Uploads: {uploadResult.stats.errorCount}</li>
+                    <li>Skipped Rows: {uploadResult.stats.skippedRows}</li>
+                  </ul>
+                </div>
+              )}
               {uploadResult.errors && uploadResult.errors.length > 0 && (
                 <div className="mt-4">
                   <h3 className="text-sm font-medium text-gray-700 mb-2">Errors:</h3>
-                  <ul className="text-sm text-red-600 list-disc pl-5">
-                    {uploadResult.errors.map((error, index) => (
-                      <li key={index}>{error}</li>
-                    ))}
-                  </ul>
+                  <div className="max-h-60 overflow-y-auto">
+                    <ul className="text-sm text-red-600 list-disc pl-5">
+                      {uploadResult.errors.map((error, index) => (
+                        <li key={index} className="mb-1">{error}</li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
               )}
             </div>
@@ -132,4 +169,4 @@ export default function UploadTeachersPage() {
       </div>
     </div>
   );
-}
+} 
