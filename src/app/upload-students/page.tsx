@@ -147,6 +147,7 @@ export default function UploadStudentsPage() {
                 <ul className="list-disc pl-5 mt-2">
                   <li>Full name will be automatically split - first word as name, rest as surname</li>
                   <li>Username will be generated automatically (name + 3 random digits)</li>
+                  <li>Password will be generated as: first 4 letters of name + @ + BS year (e.g., adit@2071)</li>
                   <li>Default values will be set for: disability (NONE), blood group (N/A)</li>
                   <li><b>The selected class will be used for all students in this upload.</b></li>
                   <li><b>Date of Birth: You can use Bikram Sambat (BS) format (YYYY-MM-DD) or standard AD date format. BS dates will be automatically converted to AD.</b></li>

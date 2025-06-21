@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 async function main() {
   // Delete existing data for a clean slate
   // await prisma.student.deleteMany({});
-  await prisma.teacher.deleteMany({});
+  // await prisma.teacher.deleteMany({});
   await prisma.student.deleteMany({});
   console.log("teacher Deleted, Student Deleted")
   

@@ -161,25 +161,34 @@ export async function POST(request: NextRequest) {
 
         // Generate password from first 4 letters of name + @ + DOB year
         let dob: Date;
+        let bsYear: string = '';
         const dobValue = rowData.dob;
         
         // Check if the date is in BS format and convert to AD
         if (typeof dobValue === 'string' && isValidBSDate(dobValue)) {
-          // Convert BS date to AD
+          // Extract BS year directly from the Excel value
+          const bsDateParts = dobValue.replace(/\//g, '-').split('-');
+          if (bsDateParts.length >= 1) {
+            bsYear = bsDateParts[0]; // Get the BS year
+          }
+          
+          // Convert BS date to AD for birthday field
           const adDateString = convertBSToAD(dobValue);
           dob = new Date(adDateString);
         } else {
           // Try to parse as regular date
           dob = new Date(dobValue);
+          // For AD dates, use the year as is
+          bsYear = dob.getFullYear().toString();
         }
         
         if (isNaN(dob.getTime())) {
           throw new Error('Invalid date format for DOB. Please use BS date format (YYYY-MM-DD) or standard date format');
         }
         
-        const dobYear = dob.getFullYear();
+        // Generate password: first 4 letters of name + @ + BS year
         const firstFourLetters = rowData.name.slice(0, 4).toLowerCase();
-        rowData.password = `${firstFourLetters}@${dobYear}`;
+        rowData.password = `${firstFourLetters}@${bsYear}`;
 
         // Set default values
         rowData.disability = 'NONE';
