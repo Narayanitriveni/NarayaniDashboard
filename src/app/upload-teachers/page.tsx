@@ -93,7 +93,7 @@ export default function UploadTeachersPage() {
                 <ul className="list-disc pl-5 mt-2">
                   <li>Full Name</li>
                   <li>Contact Number</li>
-                  <li>Date Of Birth</li>
+                  <li>Date Of Birth (supports BS format YYYY-MM-DD or standard date format)</li>
                 </ul>
               </div>
               <div>
@@ -102,6 +102,7 @@ export default function UploadTeachersPage() {
                   <li>Other columns will be ignored.</li>
                   <li>Each teacher will be assigned a random subject from the database.</li>
                   <li>Gender will be set to the selected value above for all teachers.</li>
+                  <li><b>Date of Birth: You can use Bikram Sambat (BS) format (YYYY-MM-DD) or standard AD date format. BS dates will be automatically converted to AD.</b></li>
                 </ul>
               </div>
             </div>

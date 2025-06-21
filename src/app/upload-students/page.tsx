@@ -137,7 +137,7 @@ export default function UploadStudentsPage() {
                   <li>gender (MALE/FEMALE)</li>
                   <li>fatherName</li>
                   <li>motherName</li>
-                  <li>dob (date of birth)</li>
+                  <li>dob (date of birth - supports BS format YYYY-MM-DD or standard date format)</li>
                   <li>studentId</li>
                 </ul>
               </div>
@@ -149,6 +149,7 @@ export default function UploadStudentsPage() {
                   <li>Username will be generated automatically (name + 3 random digits)</li>
                   <li>Default values will be set for: disability (NONE), blood group (N/A)</li>
                   <li><b>The selected class will be used for all students in this upload.</b></li>
+                  <li><b>Date of Birth: You can use Bikram Sambat (BS) format (YYYY-MM-DD) or standard AD date format. BS dates will be automatically converted to AD.</b></li>
                 </ul>
               </div>
             </div>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import ExcelJS from 'exceljs';
 import { PrismaClient } from '@prisma/client';
 import { createTeacher } from '@/lib/actions';
+import { convertBSToAD, isValidBSDate } from '@/lib/utils';
 
 const prisma = new PrismaClient();
 
@@ -62,9 +63,19 @@ export async function POST(request: NextRequest) {
         const surname = nameParts.slice(1).join(' ');
         // Parse DOB
         let dob: Date;
-        if (dobRaw instanceof Date) dob = dobRaw;
-        else dob = new Date(dobRaw.toString());
-        if (isNaN(dob.getTime())) throw new Error('Invalid date format for DOB');
+        if (typeof dobRaw === 'string' && isValidBSDate(dobRaw)) {
+          // Convert BS date to AD
+          const adDateString = convertBSToAD(dobRaw);
+          dob = new Date(adDateString);
+        } else if (dobRaw instanceof Date) {
+          dob = dobRaw;
+        } else {
+          // Try to parse as regular date
+          dob = new Date(dobRaw.toString());
+        }
+        if (isNaN(dob.getTime())) {
+          throw new Error('Invalid date format for DOB. Please use BS date format (YYYY-MM-DD) or standard date format');
+        }
         // Check for duplicate phone
         const existingTeacher = await prisma.teacher.findUnique({ where: { phone: contact } });
         if (existingTeacher) {

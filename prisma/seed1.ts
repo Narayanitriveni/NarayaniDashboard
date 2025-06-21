@@ -6,7 +6,9 @@ async function main() {
   // Delete existing data for a clean slate
   // await prisma.student.deleteMany({});
   await prisma.teacher.deleteMany({});
-  console.log("teacher Deleted")
+  await prisma.student.deleteMany({});
+  console.log("teacher Deleted, Student Deleted")
+  
   // await prisma.class.deleteMany({});
   // await prisma.subject.deleteMany({});
   // await prisma.grade.deleteMany({});

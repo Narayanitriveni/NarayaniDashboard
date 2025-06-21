@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import ExcelJS from 'exceljs';
 import { createStudent } from '@/lib/actions';
 import { PrismaClient } from '@prisma/client';
+import { convertBSToAD, isValidBSDate } from '@/lib/utils';
 
 const prisma = new PrismaClient();
 
@@ -159,10 +160,23 @@ export async function POST(request: NextRequest) {
         rowData.email = `${rowData.username}@gmail.com`;
 
         // Generate password from first 4 letters of name + @ + DOB year
-        const dob = new Date(rowData.dob);
-        if (isNaN(dob.getTime())) {
-          throw new Error('Invalid date format for DOB');
+        let dob: Date;
+        const dobValue = rowData.dob;
+        
+        // Check if the date is in BS format and convert to AD
+        if (typeof dobValue === 'string' && isValidBSDate(dobValue)) {
+          // Convert BS date to AD
+          const adDateString = convertBSToAD(dobValue);
+          dob = new Date(adDateString);
+        } else {
+          // Try to parse as regular date
+          dob = new Date(dobValue);
         }
+        
+        if (isNaN(dob.getTime())) {
+          throw new Error('Invalid date format for DOB. Please use BS date format (YYYY-MM-DD) or standard date format');
+        }
+        
         const dobYear = dob.getFullYear();
         const firstFourLetters = rowData.name.slice(0, 4).toLowerCase();
         rowData.password = `${firstFourLetters}@${dobYear}`;
