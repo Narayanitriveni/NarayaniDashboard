@@ -52,10 +52,12 @@ class BikramSambat {
   }
 
   static getCurrentBSDate(): BSDate {
-    // Get current date in local timezone
     const today = new Date();
-    const localDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const bsDate = ADToBS(localDate.toISOString().split('T')[0]);
+    const yearAD = today.getFullYear();
+    const monthAD = today.getMonth() + 1;
+    const dayAD = today.getDate();
+    const adDateString = `${yearAD}-${String(monthAD).padStart(2, '0')}-${String(dayAD).padStart(2, '0')}`;
+    const bsDate = ADToBS(adDateString);
     const [year, month, day] = bsDate.split('-').map(Number);
     return { year, month, day };
   }

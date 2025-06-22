@@ -8,7 +8,6 @@ import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Fee, Student, Class } from "@prisma/client";
 import { auth } from "@clerk/nextjs/server";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
-import { redirect } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { ADToBS } from "bikram-sambat-js";
@@ -93,8 +92,11 @@ const FeesListPage = async (
 
   const renderRow = (fee: FeeWithRelations) => {
     const dueDate = new Date(fee.dueDate);
-    const bsDate = ADToBS(dueDate.toISOString().split('T')[0]);
-    const [year, month, day] = bsDate.split('-').map(Number);
+    const adDateString = `${dueDate.getFullYear()}-${String(
+      dueDate.getMonth() + 1
+    ).padStart(2, "0")}-${String(dueDate.getDate()).padStart(2, "0")}`;
+    const bsDate = ADToBS(adDateString);
+    const [year, month, day] = bsDate.split("-").map(Number);
     
     const nepaliMonths = [
       'बैशाख', 'जेठ', 'आषाढ', 'श्रावण', 'भाद्र', 'आश्विन',
@@ -154,7 +156,7 @@ const FeesListPage = async (
           include: {
             class: true
           }
-        }
+        }''
       },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),

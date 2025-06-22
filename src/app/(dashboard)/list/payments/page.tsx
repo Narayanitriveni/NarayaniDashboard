@@ -9,6 +9,7 @@ import { Payment, Fee, Student, Class } from "@prisma/client";
 import { auth } from "@clerk/nextjs/server";
 import Image from "next/image";
 import Link from "next/link";
+import { ADToBS } from "bikram-sambat-js";
 
 type PaymentWithRelations = Payment & {
   fee: Fee & {
@@ -39,33 +40,50 @@ const PaymentsListPage = async (
       : []),
   ];
 
-  const renderRow = (payment: PaymentWithRelations) => (
-    <tr
-      key={payment.id}
-      className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
-    >
-      <td className="p-4">{`${payment.fee.student.name} ${payment.fee.student.surname}`}</td>
-      <td>{payment.fee.student.class.name}</td>
-      <td>{Number(payment.amount).toLocaleString()}</td>
-      <td>{payment.method}</td>
-      <td>
-        {new Date(payment.date).toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        })}
-      </td>
-      <td>{payment.transactionId || "N/A"}</td>
-      {(role === "admin" || role === "accountant") && (
-        <td>
-          <div className="flex items-center gap-2">
-            <FormContainer table="payment" type="update" data={payment} />
-            <FormContainer table="payment" type="delete" id={payment.id} />
-          </div>
-        </td>
-      )}
-    </tr>
-  );
+  const renderRow = (payment: PaymentWithRelations) => {
+    const paymentDate = new Date(payment.date);
+    const adDateString = `${paymentDate.getFullYear()}-${String(
+      paymentDate.getMonth() + 1
+    ).padStart(2, "0")}-${String(paymentDate.getDate()).padStart(2, "0")}`;
+    const bsDate = ADToBS(adDateString);
+    const [year, month, day] = bsDate.split("-").map(Number);
+
+    const nepaliMonths = [
+      "बैशाख",
+      "जेठ",
+      "आषाढ",
+      "श्रावण",
+      "भाद्र",
+      "आश्विन",
+      "कार्तिक",
+      "मंसिर",
+      "पौष",
+      "माघ",
+      "फाल्गुन",
+      "चैत्र",
+    ];
+    return (
+      <tr
+        key={payment.id}
+        className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
+      >
+        <td className="p-4">{`${payment.fee.student.name} ${payment.fee.student.surname}`}</td>
+        <td>{payment.fee.student.class.name}</td>
+        <td>{Number(payment.amount).toLocaleString()}</td>
+        <td>{payment.method}</td>
+        <td>{`${nepaliMonths[month - 1]} ${day}, ${year}`}</td>
+        <td>{payment.transactionId || "N/A"}</td>
+        {(role === "admin" || role === "accountant") && (
+          <td>
+            <div className="flex items-center gap-2">
+              <FormContainer table="payment" type="update" data={payment} />
+              <FormContainer table="payment" type="delete" id={payment.id} />
+            </div>
+          </td>
+        )}
+      </tr>
+    );
+  };
 
   const { page, sort, direction, ...queryParams } = searchParams;
 

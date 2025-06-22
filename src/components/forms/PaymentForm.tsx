@@ -9,6 +9,8 @@ import { useFormState } from "react-dom";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
+import BikramSambatDatePicker from "../BikramSambatDatePicker";
+import { BSToAD } from "bikram-sambat-js";
 
 const PaymentForm = ({
   type,
@@ -72,6 +74,13 @@ const PaymentForm = ({
     setSearchTerm(`${fee.student.name} ${fee.student.surname} (${fee.student.StudentId || 'N/A'})`);
     setValue("feeId", fee.id);
     setTimeout(() => setIsDropdownOpen(false), 100);
+  };
+
+  const handleDateSelect = (date: { year: number; month: number; day: number }) => {
+    const bsDateString = `${date.year}-${date.month.toString().padStart(2, '0')}-${date.day.toString().padStart(2, '0')}`;
+    const adDateString = BSToAD(bsDateString);
+    const adDate = new Date(adDateString);
+    setValue('date', adDate);
   };
 
   useEffect(() => {
@@ -174,14 +183,17 @@ const PaymentForm = ({
             error={errors?.amount}
           />
 
-          <InputField
-            label="Date"
-            name="date"
-            type="date"
-            defaultValue={data?.date ? new Date(data.date).toISOString().split("T")[0] : ""}
-            register={register}
-            error={errors?.date}
-          />
+          <div className="w-full md:w-[48%]">
+            <div className="flex flex-col gap-2">
+              <label className="text-xs text-gray-500">Date</label>
+              <BikramSambatDatePicker onDateSelect={handleDateSelect} />
+              {errors.date?.message && (
+                <p className="text-xs text-red-400">
+                  {errors.date.message.toString()}
+                </p>
+              )}
+            </div>
+          </div>
 
           <div className="w-full md:w-[48%]">
             <div className="flex flex-col gap-2">
