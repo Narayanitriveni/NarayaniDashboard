@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
-import { Toaster } from "react-hot-toast";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import { Analytics } from '@vercel/analytics/next';
 
 const inter = Inter({ subsets: ["latin"] });
@@ -47,13 +48,18 @@ export default function RootLayout({
         <body className={inter.className}>
           {children}
           <Analytics />
-          <Toaster
+          <ToastContainer
             position="bottom-center"
-            toastOptions={{
-              style: { fontSize: "0.875rem" },
-              duration: 3000,
-              className: "text-sm",
-            }}
+            autoClose={3000}
+            hideProgressBar={false}
+            newestOnTop={false}
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+            theme="light"
+            toastClassName="text-sm"
           />
         </body>
       </html>
