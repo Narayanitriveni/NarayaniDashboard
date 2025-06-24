@@ -17,56 +17,56 @@ const menuItems = [
         icon: "/teacher.png",
         label: "Teachers",
         href: "/list/teachers",
-        visible: ["admin", "teacher"],
+        visible: ["admin", "teacher","accountant"],
         color: "bg-purple-50"
       },
       {
         icon: "/student.png",
         label: "Students",
         href: "/list/students",
-        visible: ["admin", "teacher"],
+        visible: ["admin", "teacher","accountant"],
         color: "bg-green-50"
       },
       {
         icon: "/parent.png",
         label: "Parents",
         href: "/list/parents",
-        visible: ["admin", "teacher"],
+        visible: ["admin", "teacher","accountant"],
         color: "bg-yellow-50"
       },
       {
         icon: "/badge-indian-rupee1.png",
         label: "Fees",
         href: "/list/fees",
-        visible: ["admin"],
+        visible: ["admin","accountant"],
         color: "bg-red-50"
       },
       {
         icon: "/payments.png",
         label: "Payments",
         href: "/list/payments",
-        visible: ["admin"],
+        visible: ["admin","accountant"],
         color: "bg-pink-50"
       },
       {
         icon: "/wallet.png",
         label: "Finance",
         href: "/list/finance",
-        visible: ["admin"],
+        visible: ["admin","accountant"],
         color: "bg-indigo-50"
       },
       {
         icon: "/attendance.png",
         label: "Attendance",
         href: "/list/attendence",
-        visible: ["admin", "teacher", "student", "parent"],
+        visible: ["admin", "teacher", "student", "parent","accountant"],
         color: "bg-orange-50"
       },
       {
         icon: "/attendance.png",
         label: "Teacher Attendance",
         href: "/list/teacherattendance",
-        visible: ["admin", "teacher"],
+        visible: ["admin", "teacher","accountant"],
         color: "bg-teal-50"
       },
       {
@@ -108,21 +108,21 @@ const menuItems = [
         icon: "/result.png",
         label: "Results",
         href: "/list/results",
-        visible: ["admin", "teacher", "student", "parent"],
+        visible: ["admin", "teacher", "student", "parent","accountant"],
         color: "bg-sky-50"
       },
       {
         icon: "/calendar.png",
         label: "Events",
         href: "/list/events",
-        visible: ["admin", "teacher", "student", "parent"],
+        visible: ["admin", "teacher", "student", "parent","accountant"],
         color: "bg-lime-50"
       },
       {
         icon: "/announcement.png",
         label: "Announcements",
         href: "/list/announcements",
-        visible: ["admin", "teacher", "student", "parent"],
+        visible: ["admin", "teacher", "student", "parent","accountant"],
         color: "bg-amber-50"
       },
     ],

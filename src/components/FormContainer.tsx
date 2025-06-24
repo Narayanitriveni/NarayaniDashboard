@@ -47,6 +47,7 @@ export type FormContainerProps = {
     | "payment"
     | "finance"
     | "teacherattendance"
+    | "accountant"
   type: "create" | "update" | "delete";
   data?: any;
   id?: number | string;
