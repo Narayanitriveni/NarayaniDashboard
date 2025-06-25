@@ -11,15 +11,16 @@ import { teacherAttendanceSchema, TeacherAttendanceSchema } from "@/lib/formVali
 import { createTeacherAttendance, updateTeacherAttendance } from "@/lib/actions";
 import BikramSambatDatePicker from "../BikramSambatDatePicker";
 import { BSToAD } from "bikram-sambat-js";
+import ErrorDisplay from "../ui/error-display";
 
-type FormData = {
-  id?: number;
-  teacherId: string;
-  date: string;
-  status: "PRESENT" | "ABSENT" | "LATE";
-  inTime?: string;
-  outTime?: string;
+type FormState = {
+  success: boolean;
+  error: boolean;
+  message?: string;
+  details?: any;
 };
+
+type FormData = TeacherAttendanceSchema;
 
 const TeacherAttendanceForm = ({
   type,
@@ -42,12 +43,16 @@ const TeacherAttendanceForm = ({
     resolver: zodResolver(teacherAttendanceSchema),
     defaultValues: {
       teacherId: data?.teacherId,
-      date: data?.date ? new Date(data.date).toISOString().split('T')[0] : undefined,
+      // @ts-ignore
+      date: data?.date ? new Date(data.date) : undefined,
       status: data?.status || "PRESENT",
       inTime: data?.inTime || undefined,
       outTime: data?.outTime || undefined,
     }
   });
+
+  const [loading, setLoading] = useState(false);
+  const [showError, setShowError] = useState(false);
 
   const status = watch("status");
 
@@ -56,40 +61,52 @@ const TeacherAttendanceForm = ({
     {
       success: false,
       error: false,
+      message: "",
+      details: [],
     }
   );
 
   const handleDateSelect = (date: { year: number; month: number; day: number }) => {
     const bsDateString = `${date.year}-${date.month.toString().padStart(2, '0')}-${date.day.toString().padStart(2, '0')}`;
     const adDateString = BSToAD(bsDateString);
-    setValue('date', new Date(adDateString).toISOString().split('T')[0]);
+    // @ts-ignore
+    setValue('date', new Date(adDateString));
   };
 
-  const onSubmit = handleSubmit((formData) => {
-    if (type === "update" && !formData.id) {
+  const onSubmit = handleSubmit(async (formData) => {
+    if (type === "update" && !data.id) {
       toast.error("ID is required for update");
       return;
     }
 
+    setLoading(true);
+    setShowError(false);
+
     const submitData = {
       ...formData,
       date: new Date(formData.date),
-      inTime: formData.status !== "ABSENT" ? formData.inTime : undefined,
-      outTime: formData.status !== "ABSENT" ? formData.outTime : undefined,
+      inTime: formData.status !== "ABSENT" && formData.inTime ? formData.inTime : undefined,
+      outTime: formData.status !== "ABSENT" && formData.outTime ? formData.outTime : undefined,
     };
-
-    formAction(data);
+    
+    // @ts-ignore
+    formAction(submitData);
   });
 
   const router = useRouter();
 
   useEffect(() => {
-    if (state?.success) {
+    if (state.success) {
       toast.success(`Teacher attendance has been ${type === "create" ? "created" : "updated"}!`);
       router.refresh();
       setOpen(false);
-    } else if (state?.error) {
+    }
+    if (state.error) {
+      setShowError(true);
       toast.error(state.message || "Something went wrong!");
+    }
+    if (state.success || state.error) {
+      setLoading(false);
     }
   }, [state, router, type, setOpen]);
 
@@ -100,6 +117,16 @@ const TeacherAttendanceForm = ({
       <h1 className="text-xl font-semibold">
         {type === "create" ? "Create New Teacher Attendance" : "Update Teacher Attendance"}
       </h1>
+
+      {showError && state.error && (
+        <ErrorDisplay
+          // @ts-ignore
+          error={state.details || state.message || "An error occurred"}
+          title="Error Details"
+          onClose={() => setShowError(false)}
+          className="mb-4"
+        />
+      )}
 
       <div className="flex flex-col gap-4">
         {data && (
@@ -142,6 +169,7 @@ const TeacherAttendanceForm = ({
               <BikramSambatDatePicker onDateSelect={handleDateSelect} />
               {errors.date?.message && (
                 <p className="text-xs text-red-400">
+                  {/* @ts-ignore */}
                   {errors.date.message.toString()}
                 </p>
               )}
@@ -189,11 +217,18 @@ const TeacherAttendanceForm = ({
         </div>
       </div>
 
-      {state?.error && (
-        <span className="text-red-500">Something went wrong!</span>
-      )}
-      <button className="bg-blue-400 text-white p-2 rounded-md">
-        {type === "create" ? "Create Attendance" : "Update Attendance"}
+      <button
+        type="submit"
+        disabled={loading}
+        className={`${
+          loading ? "bg-gray-400" : "bg-blue-400"
+        } text-white p-2 rounded-md transition-colors`}
+      >
+        {loading
+          ? `${type === "create" ? "Creating" : "Updating"}...`
+          : type === "create"
+          ? "Create Attendance"
+          : "Update Attendance"}
       </button>
     </form>
   );

@@ -6,11 +6,12 @@ import InputField from "../InputField";
 import { paymentSchema, PaymentSchema } from "@/lib/formValidationSchemas";
 import { createPayment, updatePayment } from "@/lib/actions";
 import { useFormState } from "react-dom";
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState, useMemo } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import BikramSambatDatePicker from "../BikramSambatDatePicker";
 import { BSToAD } from "bikram-sambat-js";
+import ErrorDisplay from "../ui/error-display";
 
 const PaymentForm = ({
   type,
@@ -32,35 +33,69 @@ const PaymentForm = ({
     resolver: zodResolver(paymentSchema),
   });
 
+  const [loading, setLoading] = useState(false);
+  const [showError, setShowError] = useState(false);
+
   const [state, formAction] = useFormState(
     type === "create" ? createPayment : updatePayment,
     {
       success: false,
       error: false,
+      message: "",
+      details: null,
     }
   );
 
-  const onSubmit = handleSubmit((formData) => {
-    formAction(formData);
-    console.log(formData);
+  const onSubmit = handleSubmit(async (formData) => {
+    setLoading(true);
+    setShowError(false);
+    await formAction(formData);
+    setLoading(false);
   });
 
   const router = useRouter();
 
   useEffect(() => {
     if (state.success) {
-      toast(`Payment has been ${type === "create" ? "created" : "updated"}!`);
+      toast.success(
+        `Payment has been ${type === "create" ? "created" : "updated"}!`
+      );
       setOpen(false);
       router.refresh();
     }
+    if (state.error) {
+      setShowError(true);
+      toast.error(state.message || "Something went wrong!");
+    }
+    if (state.success || state.error) {
+      setLoading(false);
+    }
   }, [state, router, type, setOpen]);
 
-  const fees = relatedData?.fees || [];
+  // Memoize fees to avoid unnecessary re-renders and fix exhaustive-deps warning
+  const fees = useMemo(() => relatedData?.fees || [], [relatedData?.fees]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [selectedFee, setSelectedFee] = useState<any>(
     data?.feeId ? fees.find((fee: any) => fee.id === data.feeId) : null
   );
+
+  // Ensure selected fee and search term are set when editing and fees are loaded
+  useEffect(() => {
+    if (type === "update" && data?.feeId && fees.length > 0) {
+      const found = fees.find((fee: any) => fee.id === data.feeId);
+      if (found) {
+        setSelectedFee(found);
+        setSearchTerm(
+          `${found.student.name} ${found.student.surname} (${
+            found.student.StudentId || "N/A"
+          })`
+        );
+        setValue("feeId", found.id);
+        setIsDropdownOpen(false);
+      }
+    }
+  }, [type, data?.feeId, fees, setValue]);
 
   const filteredFees = fees.filter((fee: any) => {
     const fullName = `${fee.student.name} ${fee.student.surname}`.toLowerCase();
@@ -71,16 +106,26 @@ const PaymentForm = ({
 
   const handleFeeSelect = (fee: any) => {
     setSelectedFee(fee);
-    setSearchTerm(`${fee.student.name} ${fee.student.surname} (${fee.student.StudentId || 'N/A'})`);
+    setSearchTerm(
+      `${fee.student.name} ${fee.student.surname} (${
+        fee.student.StudentId || "N/A"
+      })`
+    );
     setValue("feeId", fee.id);
     setTimeout(() => setIsDropdownOpen(false), 100);
   };
 
-  const handleDateSelect = (date: { year: number; month: number; day: number }) => {
-    const bsDateString = `${date.year}-${date.month.toString().padStart(2, '0')}-${date.day.toString().padStart(2, '0')}`;
+  const handleDateSelect = (date: {
+    year: number;
+    month: number;
+    day: number;
+  }) => {
+    const bsDateString = `${date.year}-${date.month
+      .toString()
+      .padStart(2, "0")}-${date.day.toString().padStart(2, "0")}`;
     const adDateString = BSToAD(bsDateString);
     const adDate = new Date(adDateString);
-    setValue('date', adDate);
+    setValue("date", adDate);
   };
 
   useEffect(() => {
@@ -90,7 +135,7 @@ const PaymentForm = ({
         setIsDropdownOpen(false);
       }
     };
-    
+
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
@@ -109,6 +154,15 @@ const PaymentForm = ({
       <h1 className="text-xl font-semibold">
         {type === "create" ? "Create New Payment" : "Update Payment"}
       </h1>
+
+      {showError && state.error && (
+        <ErrorDisplay
+          error={state.details || state.message || "An error occurred"}
+          title="Error Details"
+          onClose={() => setShowError(false)}
+          className="mb-4"
+        />
+      )}
 
       <div className="flex flex-col gap-4">
         {data && (
@@ -146,13 +200,21 @@ const PaymentForm = ({
                       onClick={() => handleFeeSelect(fee)}
                     >
                       <div>
-                        <span>{fee.student.name} {fee.student.surname}</span>
-                        <span className="text-gray-500 text-sm ml-2">ID: {fee.student.StudentId || 'N/A'}</span>
+                        <span>
+                          {fee.student.name} {fee.student.surname}
+                        </span>
+                        <span className="text-gray-500 text-sm ml-2">
+                          ID: {fee.student.StudentId || "N/A"}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-500">{fee.student.class?.name}</span>
+                        <span className="text-xs text-gray-500">
+                          {fee.student.class?.name}
+                        </span>
                         <span className="text-green-600 font-semibold">
-                          {Number(fee.totalAmount - fee.paidAmount).toLocaleString()}
+                          {Number(
+                            fee.totalAmount - fee.paidAmount
+                          ).toLocaleString()}
                         </span>
                       </div>
                     </div>
@@ -169,7 +231,9 @@ const PaymentForm = ({
                 <input type="hidden" {...register("feeId")} />
               )}
               {errors.feeId?.message && (
-                <p className="text-xs text-red-400">{errors.feeId.message.toString()}</p>
+                <p className="text-xs text-red-400">
+                  {errors.feeId.message.toString()}
+                </p>
               )}
             </div>
           </div>
@@ -209,7 +273,9 @@ const PaymentForm = ({
                 <option value="UPI">UPI</option>
               </select>
               {errors.method?.message && (
-                <p className="text-xs text-red-400">{errors.method.message.toString()}</p>
+                <p className="text-xs text-red-400">
+                  {errors.method.message.toString()}
+                </p>
               )}
             </div>
           </div>
@@ -225,9 +291,22 @@ const PaymentForm = ({
         </div>
       </div>
 
-      {state?.error && <span className="text-red-500">Something went wrong!</span>}
-      <button className="bg-blue-400 text-white p-2 rounded-md">
-        {type === "create" ? "Create Payment" : "Update Payment"}
+      <button
+        type="submit"
+        disabled={loading}
+        className={`p-2 rounded-md text-white transition ${
+          loading
+            ? "bg-blue-300 cursor-not-allowed"
+            : "bg-blue-400 hover:bg-blue-500"
+        }`}
+      >
+        {loading
+          ? type === "create"
+            ? "Creating..."
+            : "Updating..."
+          : type === "create"
+          ? "Create Payment"
+          : "Update Payment"}
       </button>
     </form>
   );

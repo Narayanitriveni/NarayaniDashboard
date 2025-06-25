@@ -6,11 +6,12 @@ import InputField from "../InputField";
 import { feeSchema, FeeSchema } from "@/lib/formValidationSchemas";
 import { createFee, updateFee } from "@/lib/actions";
 import { useFormState } from "react-dom";
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import BikramSambatDatePicker from "../BikramSambatDatePicker";
 import { BSToAD } from "bikram-sambat-js";
+import ErrorDisplay from "../ui/error-display";
 
 const FeeForm = ({
   type,
@@ -32,47 +33,82 @@ const FeeForm = ({
     resolver: zodResolver(feeSchema),
   });
 
+  const [loading, setLoading] = useState(false);
+  const [showError, setShowError] = useState(false);
+
   const [state, formAction] = useFormState(
     type === "create" ? createFee : updateFee,
     {
       success: false,
       error: false,
+      message: "",
+      details: null,
     }
   );
 
-  const onSubmit = handleSubmit((data) => {
-    console.log("Fee Form - Submitted data:", {
-      ...data,
-      paidAmount: data.paidAmount,
-      totalAmount: data.totalAmount
-    });
-    formAction(data);
+  const onSubmit = handleSubmit(async (data) => {
+    setLoading(true);
+    setShowError(false);
+    await formAction(data);
+    setLoading(false);
   });
-  
 
   const router = useRouter();
 
   useEffect(() => {
     if (state.success) {
-      toast(`Fee has been ${type === "create" ? "created" : "updated"}!`);
+      toast.success(`Fee has been ${type === "create" ? "created" : "updated"}!`);
       setOpen(false);
       router.refresh();
     }
+    if (state.error) {
+      setShowError(true);
+      toast.error(state.message || "Something went wrong!");
+    }
+    if (state.success || state.error) {
+      setLoading(false);
+    }
   }, [state, router, type, setOpen]);
 
-  const students = relatedData?.students || [];
+  const students = useMemo(
+    () => relatedData?.students || [],
+    [relatedData?.students]
+  );
   const [searchTerm, setSearchTerm] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<any>(
-    data?.studentId ? students.find((student: any) => student.id === data.studentId) : null
+    data?.studentId
+      ? students.find((student: any) => student.id === data.studentId)
+      : null
   );
 
-  const filteredStudents = students.filter((student: any) => {
-    const fullName = `${student.name} ${student.surname}`.toLowerCase();
-    const studentId = student.StudentId?.toLowerCase() || "";
-    const searchLower = searchTerm.toLowerCase();
-    return fullName.includes(searchLower) || studentId.includes(searchLower);
-  });
+  // Ensure selected student and search term are set when editing and students are loaded
+  useEffect(() => {
+    if (type === "update" && data?.studentId && students.length > 0) {
+      const found = students.find(
+        (student: any) => student.id === data.studentId
+      );
+      if (found) {
+        setSelectedStudent(found);
+        setSearchTerm(`${found.name} ${found.surname} (${found.StudentId})`);
+        setValue("studentId", found.id);
+        setIsDropdownOpen(false);
+      }
+    }
+  }, [type, data?.studentId, students, setValue]);
+
+  const filteredStudents = useMemo(
+    () =>
+      students.filter((student: any) => {
+        const fullName = `${student.name} ${student.surname}`.toLowerCase();
+        const studentId = student.StudentId?.toLowerCase() || "";
+        const searchLower = searchTerm.toLowerCase();
+        return (
+          fullName.includes(searchLower) || studentId.includes(searchLower)
+        );
+      }),
+    [students, searchTerm]
+  );
 
   const handleStudentSelect = (student: any) => {
     setSelectedStudent(student);
@@ -81,11 +117,17 @@ const FeeForm = ({
     setTimeout(() => setIsDropdownOpen(false), 100);
   };
 
-  const handleDueDateSelect = (date: { year: number; month: number; day: number }) => {
-    const bsDateString = `${date.year}-${date.month.toString().padStart(2, '0')}-${date.day.toString().padStart(2, '0')}`;
+  const handleDueDateSelect = (date: {
+    year: number;
+    month: number;
+    day: number;
+  }) => {
+    const bsDateString = `${date.year}-${date.month
+      .toString()
+      .padStart(2, "0")}-${date.day.toString().padStart(2, "0")}`;
     const adDateString = BSToAD(bsDateString);
     const adDate = new Date(adDateString);
-    setValue('dueDate', adDate);
+    setValue("dueDate", adDate);
   };
 
   useEffect(() => {
@@ -95,7 +137,7 @@ const FeeForm = ({
         setIsDropdownOpen(false);
       }
     };
-    
+
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
@@ -107,6 +149,15 @@ const FeeForm = ({
       <h1 className="text-xl font-semibold">
         {type === "create" ? "Create New Fee" : "Update Fee"}
       </h1>
+
+      {showError && state.error && (
+        <ErrorDisplay
+          error={state.details || state.message || "An error occurred"}
+          title="Error Details"
+          onClose={() => setShowError(false)}
+          className="mb-4"
+        />
+      )}
 
       <div className="flex flex-col gap-4">
         {data && (
@@ -144,10 +195,16 @@ const FeeForm = ({
                       onClick={() => handleStudentSelect(student)}
                     >
                       <div className="flex justify-between items-center">
-                        <span>{student.name} {student.surname}</span>
-                        <span className="text-gray-500 text-sm">ID: {student.StudentId || 'N/A'}</span>
+                        <span>
+                          {student.name} {student.surname}
+                        </span>
+                        <span className="text-gray-500 text-sm">
+                          ID: {student.StudentId || "N/A"}
+                        </span>
                       </div>
-                      <div className="text-xs text-gray-500">{student.class?.name}</div>
+                      <div className="text-xs text-gray-500">
+                        {student.class?.name}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -162,7 +219,9 @@ const FeeForm = ({
                 <input type="hidden" {...register("studentId")} />
               )}
               {errors.studentId?.message && (
-                <p className="text-xs text-red-400">{errors.studentId.message.toString()}</p>
+                <p className="text-xs text-red-400">
+                  {errors.studentId.message.toString()}
+                </p>
               )}
             </div>
           </div>
@@ -223,11 +282,22 @@ const FeeForm = ({
         )}
       </div>
 
-      {state?.error && (
-        <span className="text-red-500">Something went wrong!</span>
-      )}
-      <button className="bg-blue-400 text-white p-2 rounded-md">
-        {type === "create" ? "Create Fee" : "Update Fee"}
+      <button
+        type="submit"
+        disabled={loading}
+        className={`p-2 rounded-md text-white transition ${
+          loading
+            ? "bg-blue-300 cursor-not-allowed"
+            : "bg-blue-400 hover:bg-blue-500"
+        }`}
+      >
+        {loading
+          ? type === "create"
+            ? "Creating..."
+            : "Updating..."
+          : type === "create"
+          ? "Create Fee"
+          : "Update Fee"}
       </button>
     </form>
   );

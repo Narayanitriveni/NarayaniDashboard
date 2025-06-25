@@ -9,6 +9,7 @@ import { useFormState } from "react-dom";
 import { createAccountant, updateAccountant } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
+import ErrorDisplay from "../ui/error-display";
 
 const AccountantForm = ({
   type,
@@ -29,6 +30,7 @@ const AccountantForm = ({
   });
 
   const [loading, setLoading] = useState(false);
+  const [showError, setShowError] = useState(false);
 
   const [state, formAction] = useFormState(
     type === "create" ? createAccountant : updateAccountant,
@@ -36,11 +38,13 @@ const AccountantForm = ({
       success: false,
       error: false,
       message: "",
+      details: null,
     }
   );
 
   const onSubmit = handleSubmit(async (data) => {
     setLoading(true);
+    setShowError(false);
     await formAction(data);
     setLoading(false);
   });
@@ -54,7 +58,9 @@ const AccountantForm = ({
       router.refresh();
     }
     if (state.error) {
-        toast.error(state.message || "Something went wrong!");
+      setShowError(true);
+      // Still show toast for immediate feedback
+      toast.error(state.message || "Something went wrong!");
     }
     if (state.success || state.error) {
       setLoading(false);
@@ -66,6 +72,17 @@ const AccountantForm = ({
       <h1 className="text-xl font-semibold">
         {type === "create" ? "Create a new accountant" : "Update the accountant"}
       </h1>
+      
+      {/* Error Display */}
+      {showError && state.error && (
+        <ErrorDisplay
+          error={state.details || state.message || "An error occurred"}
+          title="Error Details"
+          onClose={() => setShowError(false)}
+          className="mb-4"
+        />
+      )}
+      
       <span className="text-xs text-gray-400 font-medium">
         Authentication Information
       </span>
@@ -136,10 +153,16 @@ const AccountantForm = ({
           />
         )}
       </div>
-      {state.error && (
-        <span className="text-red-500">{state.message || "Something went wrong!"}</span>
-      )}
-      <button type="submit" disabled={loading} className={`p-2 rounded-md text-white transition ${loading ? "bg-blue-300 cursor-not-allowed" : "bg-blue-400 hover:bg-blue-500"}`}>
+      
+      <button 
+        type="submit" 
+        disabled={loading} 
+        className={`p-2 rounded-md text-white transition ${
+          loading 
+            ? "bg-blue-300 cursor-not-allowed" 
+            : "bg-blue-400 hover:bg-blue-500"
+        }`}
+      >
         {loading
           ? type === "create"
             ? "Creating..."

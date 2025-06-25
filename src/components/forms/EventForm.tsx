@@ -11,6 +11,7 @@ import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import BikramSambatDatePicker from "../BikramSambatDatePicker";
 import { BSToAD } from "bikram-sambat-js";
+import ErrorDisplay from "../ui/error-display";
 
 const EventForm = ({
   type,
@@ -33,69 +34,106 @@ const EventForm = ({
     resolver: zodResolver(eventSchema),
   });
 
+  const [loading, setLoading] = useState(false);
+  const [showError, setShowError] = useState(false);
+
   const [state, formAction] = useFormState(
     type === "create" ? createEvent : updateEvent,
     {
       success: false,
       error: false,
+      message: "",
+      details: null,
     }
   );
 
-  const onSubmit = handleSubmit((data) => {
-    formAction(data);
+  const onSubmit = handleSubmit(async (data) => {
+    setLoading(true);
+    setShowError(false);
+    await formAction(data);
+    setLoading(false);
   });
 
   const router = useRouter();
 
   useEffect(() => {
     if (state.success) {
-      toast(`Event has been ${type === "create" ? "created" : "updated"}!`);
+      toast.success(`Event has been ${type === "create" ? "created" : "updated"}!`);
       setOpen(false);
       router.refresh();
+    }
+    if (state.error) {
+      setShowError(true);
+      toast.error(state.message || "Something went wrong!");
+    }
+    if (state.success || state.error) {
+      setLoading(false);
     }
   }, [state, router, type, setOpen]);
 
   const { classes } = relatedData;
 
-  const handleStartDateSelect = (date: { year: number; month: number; day: number }) => {
-    const bsDateString = `${date.year}-${date.month.toString().padStart(2, '0')}-${date.day.toString().padStart(2, '0')}`;
+  const handleStartDateSelect = (date: {
+    year: number;
+    month: number;
+    day: number;
+  }) => {
+    const bsDateString = `${date.year}-${date.month
+      .toString()
+      .padStart(2, "0")}-${date.day.toString().padStart(2, "0")}`;
     const adDateString = BSToAD(bsDateString);
     const adDate = new Date(adDateString);
     // Get the current start time value or default to 9:00 AM
-    const currentStartTime = watch('startTime') || new Date();
-    adDate.setHours(currentStartTime.getHours(), currentStartTime.getMinutes(), 0, 0);
-    setValue('startTime', adDate);
+    const currentStartTime = watch("startTime") || new Date();
+    adDate.setHours(
+      currentStartTime.getHours(),
+      currentStartTime.getMinutes(),
+      0,
+      0
+    );
+    setValue("startTime", adDate);
   };
 
-  const handleEndDateSelect = (date: { year: number; month: number; day: number }) => {
-    const bsDateString = `${date.year}-${date.month.toString().padStart(2, '0')}-${date.day.toString().padStart(2, '0')}`;
+  const handleEndDateSelect = (date: {
+    year: number;
+    month: number;
+    day: number;
+  }) => {
+    const bsDateString = `${date.year}-${date.month
+      .toString()
+      .padStart(2, "0")}-${date.day.toString().padStart(2, "0")}`;
     const adDateString = BSToAD(bsDateString);
     const adDate = new Date(adDateString);
     // Get the current end time value or default to 5:00 PM
-    const currentEndTime = watch('endTime') || new Date();
-    adDate.setHours(currentEndTime.getHours(), currentEndTime.getMinutes(), 0, 0);
-    setValue('endTime', adDate);
+    const currentEndTime = watch("endTime") || new Date();
+    adDate.setHours(
+      currentEndTime.getHours(),
+      currentEndTime.getMinutes(),
+      0,
+      0
+    );
+    setValue("endTime", adDate);
   };
 
   const handleStartTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const [hours, minutes] = e.target.value.split(':');
-    const currentDate = watch('startTime') || new Date();
+    const [hours, minutes] = e.target.value.split(":");
+    const currentDate = watch("startTime") || new Date();
     const newDate = new Date(currentDate);
     newDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-    setValue('startTime', newDate);
+    setValue("startTime", newDate);
   };
 
   const handleEndTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const [hours, minutes] = e.target.value.split(':');
-    const currentDate = watch('endTime') || new Date();
+    const [hours, minutes] = e.target.value.split(":");
+    const currentDate = watch("endTime") || new Date();
     const newDate = new Date(currentDate);
     newDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-    setValue('endTime', newDate);
+    setValue("endTime", newDate);
   };
 
   // Format time for input value
   const formatTimeForInput = (date: Date | undefined) => {
-    if (!date) return '';
+    if (!date) return "";
     return date.toTimeString().slice(0, 5);
   };
 
@@ -104,6 +142,15 @@ const EventForm = ({
       <h1 className="text-xl font-semibold">
         {type === "create" ? "Create a new event" : "Update the event"}
       </h1>
+
+      {showError && state.error && (
+        <ErrorDisplay
+          error={state.details || state.message || "An error occurred"}
+          title="Error Details"
+          onClose={() => setShowError(false)}
+          className="mb-4"
+        />
+      )}
 
       <div className="flex flex-col gap-4">
         {data && (
@@ -150,7 +197,9 @@ const EventForm = ({
 
         <div className="flex justify-between flex-wrap gap-4">
           <div className="flex flex-col gap-2 w-full md:w-1/2">
-            <label className="text-xs text-gray-500">Start Date (Bikram Sambat)</label>
+            <label className="text-xs text-gray-500">
+              Start Date (Bikram Sambat)
+            </label>
             <BikramSambatDatePicker onDateSelect={handleStartDateSelect} />
             <div className="mt-2">
               <label className="text-xs text-gray-500">Start Time</label>
@@ -158,7 +207,7 @@ const EventForm = ({
                 type="time"
                 className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
                 onChange={handleStartTimeChange}
-                value={formatTimeForInput(watch('startTime'))}
+                value={formatTimeForInput(watch("startTime"))}
               />
             </div>
             {errors.startTime?.message && (
@@ -169,7 +218,9 @@ const EventForm = ({
           </div>
 
           <div className="flex flex-col gap-2 w-full md:w-1/2">
-            <label className="text-xs text-gray-500">End Date (Bikram Sambat)</label>
+            <label className="text-xs text-gray-500">
+              End Date (Bikram Sambat)
+            </label>
             <BikramSambatDatePicker onDateSelect={handleEndDateSelect} />
             <div className="mt-2">
               <label className="text-xs text-gray-500">End Time</label>
@@ -177,7 +228,7 @@ const EventForm = ({
                 type="time"
                 className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
                 onChange={handleEndTimeChange}
-                value={formatTimeForInput(watch('endTime'))}
+                value={formatTimeForInput(watch("endTime"))}
               />
             </div>
             {errors.endTime?.message && (
@@ -203,11 +254,22 @@ const EventForm = ({
         </div>
       </div>
 
-      {state?.error && (
-        <span className="text-red-500">Something went wrong!</span>
-      )}
-      <button className="bg-blue-400 text-white p-2 rounded-md">
-        {type === "create" ? "Create" : "Update"}
+      <button
+        type="submit"
+        disabled={loading}
+        className={`p-2 rounded-md text-white transition ${
+          loading
+            ? "bg-blue-300 cursor-not-allowed"
+            : "bg-blue-400 hover:bg-blue-500"
+        }`}
+      >
+        {loading
+          ? type === "create"
+            ? "Creating..."
+            : "Updating..."
+          : type === "create"
+          ? "Create"
+          : "Update"}
       </button>
     </form>
   );

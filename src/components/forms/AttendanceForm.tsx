@@ -12,6 +12,7 @@ import { useSwipeable } from "react-swipeable";
 import { motion, AnimatePresence } from "framer-motion";
 import BikramSambatDatePicker from "../BikramSambatDatePicker";
 import { BSToAD } from "bikram-sambat-js";
+import ErrorDisplay from "../ui/error-display";
 
 const StudentCard = ({ student, onSwipe }: { 
   student: any;
@@ -95,6 +96,7 @@ const AttendanceForm = ({
   const [currentLessonId, setCurrentLessonId] = useState<string>("");
   const [processedStudents, setProcessedStudents] = useState<string[]>([]);
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
+  const [errorState, setErrorState] = useState<{ message: string; details: any } | null>(null);
 
   const {
     handleSubmit,
@@ -125,6 +127,7 @@ const AttendanceForm = ({
       return;
     }
 
+    setErrorState(null); // Clear previous errors
     const status = direction === "right" ? "PRESENT" : "ABSENT";
     const result = await createAttendance(
       { success: false, error: false },
@@ -142,6 +145,10 @@ const AttendanceForm = ({
       toast.success(`Marked ${status.toLowerCase()}`);
     } else {
       toast.error(result.message || "Failed to mark attendance");
+      setErrorState({ 
+        message: result.message || "An error occurred", 
+        details: result.details 
+      });
     }
   };
 
@@ -154,6 +161,15 @@ const AttendanceForm = ({
   return (
     <div className="flex flex-col gap-8 p-4">
       <h1 className="text-xl font-semibold text-center">Mark Attendance</h1>
+
+      {errorState && (
+        <ErrorDisplay
+          error={errorState.details || errorState.message}
+          title="Attendance Error"
+          onClose={() => setErrorState(null)}
+          className="mb-4"
+        />
+      )}
 
       <div className="flex flex-col gap-4">
         <div className="w-full">

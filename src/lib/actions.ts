@@ -25,7 +25,12 @@ import { calculateFeeStatus } from "./feeHelpers";
 import { revalidatePath } from "next/cache";
 import { cleanupImageOnFailure } from "./cloudinary";
 
-type CurrentState = { success: boolean; error: boolean; message?: string };
+type CurrentState = { 
+  success: boolean; 
+  error: boolean; 
+  message?: string;
+  details?: any;
+};
 
 export const createSubject = async (
   currentState: CurrentState,
@@ -43,9 +48,14 @@ export const createSubject = async (
 
     // revalidatePath("/list/subjects");
     return { success: true, error: false };
-  } catch (err) {
+  } catch (err: any) {
     console.log(err);
-    return { success: false, error: true };
+    return {
+      success: false,
+      error: true,
+      message: err.message || "An unexpected error occurred",
+      details: [{ message: err.message || "Unknown error" }],
+    };
   }
 };
 
@@ -68,9 +78,14 @@ export const updateSubject = async (
 
     // revalidatePath("/list/subjects");
     return { success: true, error: false };
-  } catch (err) {
+  } catch (err: any) {
     console.log(err);
-    return { success: false, error: true };
+    return {
+      success: false,
+      error: true,
+      message: err.message || "An unexpected error occurred",
+      details: [{ message: err.message || "Unknown error" }],
+    };
   }
 };
 
@@ -97,19 +112,19 @@ export const deleteSubject = async (
 export const createClass = async (
   currentState: CurrentState,
   data: ClassSchema
-) => {
+): Promise<CurrentState> => {
   try {
     // If supervisorId is provided, verify the teacher exists
     if (data.supervisorId) {
       const teacher = await prisma.teacher.findUnique({
-        where: { id: data.supervisorId }
+        where: { id: data.supervisorId },
       });
-      
+
       if (!teacher) {
-        return { 
-          success: false, 
-          error: true, 
-          message: "Supervisor teacher not found" 
+        return {
+          success: false,
+          error: true,
+          message: "Supervisor teacher not found",
         };
       }
     }
@@ -119,22 +134,34 @@ export const createClass = async (
         name: data.name,
         capacity: data.capacity,
         gradeId: data.gradeId,
-        supervisorId: data.supervisorId || null // Explicitly set null if not provided
+        supervisorId: data.supervisorId || null, // Explicitly set null if not provided
       },
     });
 
     // revalidatePath("/list/class");
     return { success: true, error: false };
-  } catch (err) {
-    console.log(err);
-    return { success: false, error: true };
+  } catch (err: any) {
+    console.error("Error creating class:", err);
+    return {
+      success: false,
+      error: true,
+      message: err.message || "An unexpected error occurred",
+      details: [{ message: err.message || "Unknown error" }],
+    };
   }
 };
 
 export const updateClass = async (
   currentState: CurrentState,
   data: ClassSchema
-) => {
+): Promise<CurrentState> => {
+  if (!data.id) {
+    return {
+      success: false,
+      error: true,
+      message: "Class ID is required for an update.",
+    };
+  }
   try {
     await prisma.class.update({
       where: {
@@ -145,9 +172,14 @@ export const updateClass = async (
 
     // revalidatePath("/list/class");
     return { success: true, error: false };
-  } catch (err) {
-    console.log(err);
-    return { success: false, error: true };
+  } catch (err: any) {
+    console.error("Error updating class:", err);
+    return {
+      success: false,
+      error: true,
+      message: err.message || "An unexpected error occurred",
+      details: [{ message: err.message || "Unknown error" }],
+    };
   }
 };
 
@@ -366,169 +398,79 @@ export const deleteTeacher = async (
 export const createStudent = async (
   currentState: CurrentState,
   data: StudentSchema
-) => {
-  console.log(data);
+): Promise<CurrentState> => {
   try {
-    const classItem = await prisma.class.findUnique({
-      where: { id: data.classId },
-      include: { _count: { select: { students: true } } },
+    const { parentId, ...studentData } = data;
+    const parent = await prisma.parent.findFirst({
+      where: {
+        OR: [{ id: parentId }],
+      },
     });
 
-    if (classItem && classItem.capacity === classItem._count.students) {
-      return { success: false, error: true, message: "Class capacity is full." };
-    }
-
-    // Only generate StudentId if not provided
-    let studentId = data.StudentId;
-    if (!studentId) {
-      const today = new Date();
-      const dateString = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`;
-      const nameInitials = `${data.name.charAt(0)}${data.surname.charAt(0)}`.toUpperCase();
-      const randomDigits = Math.floor(100 + Math.random() * 900);
-      studentId = `${dateString}${nameInitials}${randomDigits}`;
-    }
-
-    // Create user in Clerk
-    const user = await (await clerkClient()).users.createUser({
-      emailAddress: data.email ? [data.email] : [],
-      username: data.username,
-      password: data.password,
-      firstName: data.name,
-      lastName: data.surname,
-      publicMetadata:{role:"student"}
+    const newStudent = await prisma.student.create({
+      data: {
+        ...studentData,
+        StudentId: studentData.StudentId || "", // Ensure StudentId is always a string
+        parentId: parent?.id || null, // Ensure parentId is either a valid ID or null
+        birthday: data.birthday || null,
+      },
     });
 
-    console.log("Clerk user created successfully:", user.id);
-    console.log("Prisma query execution...");
-
-    try {
-      // Store student details in the database
-      await prisma.student.create({
-        data: {
-          id: user.id,
-          username: data.username,
-          name: data.name,
-          surname: data.surname,
-          motherName: data.motherName,
-          fatherName: data.fatherName,
-          IEMISCODE: data.IEMISCODE,
-          disability: data.disability || "NONE",
-          email: data.email || null,
-          phone: data.phone || null,
-          address: data.address,
-          img: data.img || null,
-          bloodType: data.bloodType,
-          sex: data.sex,
-          birthday: data.birthday,
-          gradeId: data.gradeId,
-          classId: data.classId,
-          StudentId: studentId,
-          parentId: data.parentId || null,
-        },
-      });
-
-      return { success: true, error: false };
-    } catch (prismaError: any) {
-      console.error("Prisma error:", prismaError);
-
-      // Clean up image from Cloudinary if it exists
-      if (data.img) {
-        await cleanupImageOnFailure(data.img, "student creation");
-      }
-
-      // Rollback - Delete user from Clerk if Prisma fails
-      await (await clerkClient()).users.deleteUser(user.id);
-      console.log("Clerk user deleted due to Prisma failure:", user.id);
-
-      return { success: false, error: true, message: prismaError.message };
-    }
-  } catch (clerkError: any) {
-    console.error("Clerk error:", clerkError);
-    
-    // Clean up image from Cloudinary if Clerk fails
-    if (data.img) {
-      await cleanupImageOnFailure(data.img, "student creation (Clerk failure)");
-    }
-    
-    return { success: false, error: true, message: clerkError.message };
+    return { success: true, error: false };
+  } catch (err: any) {
+    console.error("Error creating student:", err);
+    return {
+      success: false,
+      error: true,
+      message: err.message || "An unexpected error occurred",
+      details: [{ message: err.message || "Unknown error" }],
+    };
   }
 };
 
 export const updateStudent = async (
   currentState: CurrentState,
   data: StudentSchema
-) => {
+): Promise<CurrentState> => {
   if (!data.id) {
-    return { success: false, error: true };
+    return {
+      success: false,
+      error: true,
+      message: "Student ID is required for an update.",
+    };
   }
   try {
-    const user = await (await clerkClient()).users.updateUser(data.id, {
-      username: data.username,
-      ...(data.password !== "" && { password: data.password }),
-      firstName: data.name,
-      lastName: data.surname,
+    const { parentId, ...studentData } = data;
+    const parent = await prisma.parent.findFirst({
+      where: {
+        OR: [{ id: parentId }],
+      },
     });
-    
-    const currentStudent = await prisma.student.findUnique({
-      where: {id: data.id},
-      select: {img: true}
+
+    const updatedStudent = await prisma.student.update({
+      where: {
+        id: data.id,
+      },
+      data: {
+        ...studentData,
+        StudentId: studentData.StudentId || "", // Ensure StudentId is always a string
+        parentId: parent?.id || null, // Ensure parentId is either a valid ID or null
+        birthday: data.birthday || null,
+      },
     });
-    
-    try {
-      await prisma.student.update({
-        where: {
-          id: data.id,
-        },
-        data: {
-          username: data.username,
-          name: data.name,
-          surname: data.surname,
-          motherName: data.motherName,
-          fatherName: data.fatherName,
-          IEMISCODE: data.IEMISCODE,
-          disability: data.disability || "NONE",
-          email: data.email || null,
-          phone: data.phone || null,
-          address: data.address,
-          ...(data.img ? { img: data.img } : { img: currentStudent?.img }),
-          bloodType: data.bloodType,
-          sex: data.sex,
-          birthday: data.birthday,
-          gradeId: data.gradeId,
-          classId: data.classId,
-          parentId: data.parentId || null,
-        },
-      });
-    
-      return { success: true, error: false };
-    } catch (prismaError: any) {
-      console.error("Prisma error in updateStudent:", prismaError);
-      
-      // Clean up new image from Cloudinary if update fails and a new image was uploaded
-      if (data.img && data.img !== currentStudent?.img) {
-        await cleanupImageOnFailure(data.img, "student update");
-      }
-      
-      return { success: false, error: true, message: prismaError.message };
-    }
-  } catch (err) {
-    console.log(err);
-    
-    // Clean up new image from Cloudinary if Clerk update fails and a new image was uploaded
-    if (data.img) {
-      const currentStudent = await prisma.student.findUnique({
-        where: { id: data.id },
-        select: { img: true }
-      });
-      
-      if (data.img !== currentStudent?.img) {
-        await cleanupImageOnFailure(data.img, "student update (Clerk failure)");
-      }
-    }
-    
-    return { success: false, error: true };
+
+    return { success: true, error: false };
+  } catch (err: any) {
+    console.error("Error updating student:", err);
+    return {
+      success: false,
+      error: true,
+      message: err.message || "An unexpected error occurred",
+      details: [{ message: err.message || "Unknown error" }],
+    };
   }
 };
+
 export const deleteStudent = async (
   currentState: CurrentState,
   data: FormData
@@ -575,7 +517,7 @@ export const deleteStudent = async (
 export const createExam = async (
   currentState: CurrentState,
   data: ExamSchema
-) => {
+): Promise<CurrentState> => {
   try {
     await prisma.exam.create({
       data: {
@@ -588,16 +530,28 @@ export const createExam = async (
     });
 
     return { success: true, error: false };
-  } catch (err) {
-    console.log(err);
-    return { success: false, error: true };
+  } catch (err: any) {
+    console.error("Error creating exam:", err);
+    return {
+      success: false,
+      error: true,
+      message: err.message || "An unexpected error occurred",
+      details: [{ message: err.message || "Unknown error" }],
+    };
   }
 };
 
 export const updateExam = async (
   currentState: CurrentState,
   data: ExamSchema
-) => {
+): Promise<CurrentState> => {
+  if (!data.id) {
+    return {
+      success: false,
+      error: true,
+      message: "Exam ID is required for an update.",
+    };
+  }
   try {
     await prisma.exam.update({
       where: {
@@ -613,9 +567,14 @@ export const updateExam = async (
     });
 
     return { success: true, error: false };
-  } catch (err) {
-    console.log(err);
-    return { success: false, error: true };
+  } catch (err: any) {
+    console.error("Error updating exam:", err);
+    return {
+      success: false,
+      error: true,
+      message: err.message || "An unexpected error occurred",
+      details: [{ message: err.message || "Unknown error" }],
+    };
   }
 };
 
@@ -647,7 +606,7 @@ export const deleteExam = async (
 export const createLesson = async (
   currentState: CurrentState,
   data: LessonSchema
-) => {
+): Promise<CurrentState> => {
   try {
     await prisma.lesson.create({
       data: {
@@ -662,16 +621,28 @@ export const createLesson = async (
     });
 
     return { success: true, error: false };
-  } catch (err) {
-    console.log(err);
-    return { success: false, error: true };
+  } catch (err: any) {
+    console.error("Error creating lesson:", err);
+    return {
+      success: false,
+      error: true,
+      message: err.message || "An unexpected error occurred",
+      details: [{ message: err.message || "Unknown error" }],
+    };
   }
 };
 
 export const updateLesson = async (
   currentState: CurrentState,
   data: LessonSchema
-) => {
+): Promise<CurrentState> => {
+  if (!data.id) {
+    return {
+      success: false,
+      error: true,
+      message: "Lesson ID is required for an update.",
+    };
+  }
   try {
     await prisma.lesson.update({
       where: {
@@ -689,9 +660,14 @@ export const updateLesson = async (
     });
 
     return { success: true, error: false };
-  } catch (err) {
-    console.log(err);
-    return { success: false, error: true };
+  } catch (err: any) {
+    console.error("Error updating lesson:", err);
+    return {
+      success: false,
+      error: true,
+      message: err.message || "An unexpected error occurred",
+      details: [{ message: err.message || "Unknown error" }],
+    };
   }
 };
 
@@ -717,7 +693,7 @@ export const deleteLesson = async (
 export const createAssignment = async (
   currentState: CurrentState,
   data: AssignmentSchema
-) => {
+): Promise<CurrentState> => {
   try {
     await prisma.assignment.create({
       data: {
@@ -729,16 +705,28 @@ export const createAssignment = async (
     });
 
     return { success: true, error: false };
-  } catch (err) {
-    console.log(err);
-    return { success: false, error: true };
+  } catch (err: any) {
+    console.error("Error creating assignment:", err);
+    return {
+      success: false,
+      error: true,
+      message: err.message || "An unexpected error occurred",
+      details: [{ message: err.message || "Unknown error" }],
+    };
   }
 };
 
 export const updateAssignment = async (
   currentState: CurrentState,
   data: AssignmentSchema
-) => {
+): Promise<CurrentState> => {
+  if (!data.id) {
+    return {
+      success: false,
+      error: true,
+      message: "Assignment ID is required for an update.",
+    };
+  }
   try {
     await prisma.assignment.update({
       where: {
@@ -753,9 +741,14 @@ export const updateAssignment = async (
     });
 
     return { success: true, error: false };
-  } catch (err) {
-    console.log(err);
-    return { success: false, error: true };
+  } catch (err: any) {
+    console.error("Error updating assignment:", err);
+    return {
+      success: false,
+      error: true,
+      message: err.message || "An unexpected error occurred",
+      details: [{ message: err.message || "Unknown error" }],
+    };
   }
 };
 
@@ -781,45 +774,62 @@ export const deleteAssignment = async (
 export const createResult = async (
   currentState: CurrentState,
   data: ResultSchema
-) => {
+): Promise<CurrentState> => {
   try {
     await prisma.result.create({
       data: {
+        studentId: data.studentId,
         score: data.score,
         examId: data.examId || null,
         assignmentId: data.assignmentId || null,
-        studentId: data.studentId,
       },
     });
 
     return { success: true, error: false };
-  } catch (err) {
-    console.log(err);
-    return { success: false, error: true };
+  } catch (err: any) {
+    console.error("Error creating result:", err);
+    return {
+      success: false,
+      error: true,
+      message: err.message || "An unexpected error occurred",
+      details: [{ message: err.message || "Unknown error" }],
+    };
   }
 };
 
 export const updateResult = async (
   currentState: CurrentState,
   data: ResultSchema
-) => {
+): Promise<CurrentState> => {
+  if (!data.id) {
+    return {
+      success: false,
+      error: true,
+      message: "Result ID is required for an update.",
+    };
+  }
   try {
     await prisma.result.update({
       where: {
         id: data.id,
       },
       data: {
+        studentId: data.studentId,
         score: data.score,
         examId: data.examId || null,
         assignmentId: data.assignmentId || null,
-        studentId: data.studentId,
       },
     });
 
     return { success: true, error: false };
-  } catch (err) {
-    console.log(err);
-    return { success: false, error: true };
+  } catch (err: any) {
+    console.error("Error updating result:", err);
+    return {
+      success: false,
+      error: true,
+      message: err.message || "An unexpected error occurred",
+      details: [{ message: err.message || "Unknown error" }],
+    };
   }
 };
 
@@ -845,7 +855,7 @@ export const deleteResult = async (
 export const createEvent = async (
   currentState: CurrentState,
   data: EventSchema
-) => {
+): Promise<CurrentState> => {
   try {
     await prisma.event.create({
       data: {
@@ -858,18 +868,27 @@ export const createEvent = async (
     });
 
     return { success: true, error: false };
-  } catch (err) {
-    console.log(err);
-    return { success: false, error: true };
+  } catch (err: any) {
+    console.error("Error creating event:", err);
+    return {
+      success: false,
+      error: true,
+      message: err.message || "An unexpected error occurred",
+      details: [{ message: err.message || "Unknown error" }],
+    };
   }
 };
 
 export const updateEvent = async (
   currentState: CurrentState,
   data: EventSchema
-) => {
+): Promise<CurrentState> => {
   if (!data.id) {
-    return { success: false, error: true };
+    return {
+      success: false,
+      error: true,
+      message: "Event ID is required for an update.",
+    };
   }
   try {
     await prisma.event.update({
@@ -886,9 +905,14 @@ export const updateEvent = async (
     });
 
     return { success: true, error: false };
-  } catch (err) {
-    console.log(err);
-    return { success: false, error: true };
+  } catch (err: any) {
+    console.error("Error updating event:", err);
+    return {
+      success: false,
+      error: true,
+      message: err.message || "An unexpected error occurred",
+      details: [{ message: err.message || "Unknown error" }],
+    };
   }
 };
 
@@ -915,7 +939,7 @@ export const deleteEvent = async (
 export const createAnnouncement = async (
   currentState: CurrentState,
   data: AnnouncementSchema
-) => {
+): Promise<CurrentState> => {
   try {
     await prisma.announcement.create({
       data: {
@@ -927,18 +951,27 @@ export const createAnnouncement = async (
     });
 
     return { success: true, error: false };
-  } catch (err) {
-    console.log(err);
-    return { success: false, error: true };
+  } catch (err: any) {
+    console.error("Error creating announcement:", err);
+    return {
+      success: false,
+      error: true,
+      message: err.message || "An unexpected error occurred",
+      details: [{ message: err.message || "Unknown error" }],
+    };
   }
 };
 
 export const updateAnnouncement = async (
   currentState: CurrentState,
   data: AnnouncementSchema
-) => {
+): Promise<CurrentState> => {
   if (!data.id) {
-    return { success: false, error: true };
+    return {
+      success: false,
+      error: true,
+      message: "Announcement ID is required for an update.",
+    };
   }
   try {
     await prisma.announcement.update({
@@ -954,9 +987,14 @@ export const updateAnnouncement = async (
     });
 
     return { success: true, error: false };
-  } catch (err) {
-    console.log(err);
-    return { success: false, error: true };
+  } catch (err: any) {
+    console.error("Error updating announcement:", err);
+    return {
+      success: false,
+      error: true,
+      message: err.message || "An unexpected error occurred",
+      details: [{ message: err.message || "Unknown error" }],
+    };
   }
 };
 
@@ -1258,7 +1296,53 @@ export const createAccountant = async (
     return { success: true, error: false };
   } catch (err: any) {
     console.error("Error creating accountant:", err);
-    return { success: false, error: true, message: err.message };
+    
+    // Handle Clerk errors specifically
+    if (err.clerkError && err.errors) {
+      return { 
+        success: false, 
+        error: true, 
+        message: "Authentication error occurred",
+        details: err.errors 
+      };
+    }
+    
+    // Handle Prisma errors
+    if (err.code === 'P2002') {
+      const field = err.meta?.target?.[0];
+      let message = "A record with this information already exists.";
+      if (field === 'username') {
+        message = "This username is already taken. Please choose a different username.";
+      } else if (field === 'email') {
+        message = "This email address is already registered. Please use a different email.";
+      } else if (field === 'phone') {
+        message = "This phone number is already registered. Please use a different phone number.";
+      }
+      return { 
+        success: false, 
+        error: true, 
+        message,
+        details: [{ code: 'P2002', message: err.message, meta: err.meta }]
+      };
+    }
+    
+    // Handle other Prisma errors
+    if (err.code) {
+      return { 
+        success: false, 
+        error: true, 
+        message: "Database error occurred",
+        details: [{ code: err.code, message: err.message, meta: err.meta }]
+      };
+    }
+    
+    // Generic error fallback
+    return { 
+      success: false, 
+      error: true, 
+      message: err.message || "An unexpected error occurred",
+      details: [{ message: err.message || "Unknown error" }]
+    };
   }
 };
 
@@ -1266,7 +1350,7 @@ export const updateAccountant = async (
   currentState: CurrentState,
   data: AccountantSchema
 ) => {
-  if (!data.id) return { success: false, error: true };
+  if (!data.id) return { success: false, error: true, message: "Accountant ID is required" };
 
   try {
     console.log("Updating accountant...");
@@ -1295,7 +1379,62 @@ export const updateAccountant = async (
     return { success: true, error: false };
   } catch (err: any) {
     console.error("Error updating accountant:", err);
-    return { success: false, error: true, message: err.message };
+    
+    // Handle Clerk errors specifically
+    if (err.clerkError && err.errors) {
+      return { 
+        success: false, 
+        error: true, 
+        message: "Authentication error occurred",
+        details: err.errors 
+      };
+    }
+    
+    // Handle Prisma errors
+    if (err.code === 'P2002') {
+      const field = err.meta?.target?.[0];
+      let message = "A record with this information already exists.";
+      if (field === 'username') {
+        message = "This username is already taken. Please choose a different username.";
+      } else if (field === 'email') {
+        message = "This email address is already registered. Please use a different email.";
+      } else if (field === 'phone') {
+        message = "This phone number is already registered. Please use a different phone number.";
+      }
+      return { 
+        success: false, 
+        error: true, 
+        message,
+        details: [{ code: 'P2002', message: err.message, meta: err.meta }]
+      };
+    }
+    
+    if (err.code === 'P2025') {
+      return { 
+        success: false, 
+        error: true, 
+        message: "Accountant not found. The record may have been deleted.",
+        details: [{ code: 'P2025', message: err.message, meta: err.meta }]
+      };
+    }
+    
+    // Handle other Prisma errors
+    if (err.code) {
+      return { 
+        success: false, 
+        error: true, 
+        message: "Database error occurred",
+        details: [{ code: err.code, message: err.message, meta: err.meta }]
+      };
+    }
+    
+    // Generic error fallback
+    return { 
+      success: false, 
+      error: true, 
+      message: err.message || "An unexpected error occurred",
+      details: [{ message: err.message || "Unknown error" }]
+    };
   }
 };
 
@@ -1304,6 +1443,11 @@ export const deleteAccountant = async (
   data: FormData
 ) => {
   const id = data.get("id") as string;
+  
+  if (!id) {
+    return { success: false, error: true, message: "Accountant ID is required" };
+  }
+  
   try {
     console.log("Deleting accountant...");
     
@@ -1318,40 +1462,91 @@ export const deleteAccountant = async (
     return { success: true, error: false };
   } catch (err: any) {
     console.error("Error deleting accountant:", err);
-    return { success: false, error: true, message: err.message };
+    
+    // Handle Clerk errors specifically
+    if (err.clerkError && err.errors) {
+      return { 
+        success: false, 
+        error: true, 
+        message: "Authentication error occurred",
+        details: err.errors 
+      };
+    }
+    
+    // Handle Prisma errors
+    if (err.code === 'P2025') {
+      return { 
+        success: false, 
+        error: true, 
+        message: "Accountant not found. The record may have already been deleted.",
+        details: [{ code: 'P2025', message: err.message, meta: err.meta }]
+      };
+    }
+    
+    // Handle other Prisma errors
+    if (err.code) {
+      return { 
+        success: false, 
+        error: true, 
+        message: "Database error occurred",
+        details: [{ code: err.code, message: err.message, meta: err.meta }]
+      };
+    }
+    
+    // Generic error fallback
+    return { 
+      success: false, 
+      error: true, 
+      message: err.message || "An unexpected error occurred",
+      details: [{ message: err.message || "Unknown error" }]
+    };
   }
 };
 
 export const createFee = async (
   currentState: CurrentState,
   data: FeeSchema
-) => {
+): Promise<CurrentState> => {
   try {
     // Convert to number for comparison
     const totalAmount = Number(data.totalAmount);
     // For zero amount fees, automatically set status to PAID
-    const status = totalAmount === 0 ? 'PAID' : data.status;
-    
+    const status = totalAmount === 0 ? "PAID" : data.status;
+
     await prisma.fee.create({
       data: {
         studentId: data.studentId,
-        totalAmount: BigInt(data.totalAmount?.toString() ?? '0'),
-        paidAmount: data.paidAmount ? BigInt(data.paidAmount.toString()) : BigInt(0),
+        totalAmount: BigInt(data.totalAmount?.toString() ?? "0"),
+        paidAmount: data.paidAmount
+          ? BigInt(data.paidAmount.toString())
+          : BigInt(0),
         dueDate: data.dueDate,
         status: status, // Use the status we determined above
       },
     });
     return { success: true, error: false };
-  } catch (err) {
-    console.log(err);
-    return { success: false, error: true };
+  } catch (err: any) {
+    console.error("Error creating fee:", err);
+    return {
+      success: false,
+      error: true,
+      message: err.message || "An unexpected error occurred",
+      details: [{ message: err.message || "Unknown error" }],
+    };
   }
 };
 
 export const updateFee = async (
   currentState: CurrentState,
   data: FeeSchema
-) => {
+): Promise<CurrentState> => {
+  if (!data.id) {
+    return {
+      success: false,
+      error: true,
+      message: "Fee ID is required for an update.",
+    };
+  }
   try {
     console.log("Update Fee - Input data:", {
       id: data.id,
@@ -1359,18 +1554,18 @@ export const updateFee = async (
       totalAmount: data.totalAmount,
       paidAmount: data.paidAmount,
       dueDate: data.dueDate,
-      status: data.status
+      status: data.status,
     });
 
     // Get the existing fee to check current amount and paid amount
     const existingFee = await prisma.fee.findUnique({
       where: { id: data.id },
-      select: { totalAmount: true, paidAmount: true }
+      select: { totalAmount: true, paidAmount: true },
     });
 
     console.log("Existing fee data:", {
       totalAmount: existingFee?.totalAmount?.toString(),
-      paidAmount: existingFee?.paidAmount?.toString()
+      paidAmount: existingFee?.paidAmount?.toString(),
     });
 
     if (!existingFee) {
@@ -1378,35 +1573,37 @@ export const updateFee = async (
     }
 
     // Use provided totalAmount or keep existing one
-    const newTotalAmount = data.totalAmount !== undefined && !isNaN(Number(data.totalAmount))
-      ? BigInt(data.totalAmount.toString())
-      : existingFee.totalAmount;
+    const newTotalAmount =
+      data.totalAmount !== undefined && !isNaN(Number(data.totalAmount))
+        ? BigInt(data.totalAmount.toString())
+        : existingFee.totalAmount;
 
     console.log("Paid amount check:", {
       providedPaidAmount: data.paidAmount,
       isUndefined: data.paidAmount === undefined,
       isNaN: isNaN(Number(data.paidAmount)),
-      existingPaidAmount: existingFee.paidAmount.toString()
+      existingPaidAmount: existingFee.paidAmount.toString(),
     });
 
     // Keep existing paid amount if not provided or if empty string or undefined
     // Only use new paid amount if it's explicitly provided and valid
-    const newPaidAmount = (data.paidAmount !== undefined && 
-      String(data.paidAmount).trim() !== "" && 
+    const newPaidAmount =
+      data.paidAmount !== undefined &&
+      String(data.paidAmount).trim() !== "" &&
       !isNaN(Number(data.paidAmount)) &&
-      Number(data.paidAmount) !== 0)  // Don't use 0 unless it's explicitly provided
+      Number(data.paidAmount) !== 0 // Don't use 0 unless it's explicitly provided
         ? BigInt(data.paidAmount.toString())
         : existingFee.paidAmount;
 
     console.log("Final values:", {
       newTotalAmount: newTotalAmount.toString(),
       newPaidAmount: newPaidAmount.toString(),
-      status: data.status
+      status: data.status,
     });
 
     // For zero amount fees, automatically set status to PAID
-    const status = newTotalAmount === BigInt(0) ? 'PAID' : data.status;
-    
+    const status = newTotalAmount === BigInt(0) ? "PAID" : data.status;
+
     await prisma.fee.update({
       where: { id: data.id },
       data: {
@@ -1418,9 +1615,14 @@ export const updateFee = async (
       },
     });
     return { success: true, error: false };
-  } catch (err) {
+  } catch (err: any) {
     console.error("Error in updateFee:", err);
-    return { success: false, error: true };
+    return {
+      success: false,
+      error: true,
+      message: err.message || "An unexpected error occurred",
+      details: [{ message: err.message || "Unknown error" }],
+    };
   }
 };
 
@@ -1443,92 +1645,118 @@ export const deleteFee = async (
 export const createPayment = async (
   currentState: CurrentState,
   data: PaymentSchema
-) => {
+): Promise<CurrentState> => {
   try {
-    console.log("control reaches here")
-    return await prisma.$transaction(async (tx) => {
-      // 1. Create payment
-      const payment = await tx.payment.create({
-        data: {
-          feeId: data.feeId,
-          amount: data.amount,
-          method: data.method,
-          date: data.date,
-          reference: data.reference,
-          transactionId: data.transactionId || null
-        }
-      });
+    console.log("control reaches here");
+    // Generate a short numeric reference, approx 10 digits
+    // Use current timestamp (last 6 digits) + 4 random digits
+    const ts = Date.now().toString().slice(-6);
+    const rand = Math.floor(1000 + Math.random() * 9000).toString();
+    const uniqueReference = `${ts}${rand}`;
+    return await prisma.$transaction(
+      async (tx) => {
+        // 1. Create payment with generated reference
+        const payment = await tx.payment.create({
+          data: {
+            feeId: data.feeId,
+            amount: data.amount,
+            method: data.method,
+            date: data.date,
+            reference: uniqueReference,
+            transactionId: data.transactionId || null,
+          },
+        });
 
-      // 2. First update the fee's paid amount
-      const updatedFee = await tx.fee.update({
-        where: { id: data.feeId },
-        data: {
-          paidAmount: { increment: BigInt(data.amount) }
-        },
-        select: {
-          id: true,
-          totalAmount: true,
-          paidAmount: true,
-          dueDate: true
-        }
-      });
-      
-      // 3. Now calculate and set the status with the updated amounts
-      await tx.fee.update({
-        where: { id: data.feeId },
-        data: {
-          status: await calculateFeeStatus(data.feeId, tx)
-        }
-      });
+        // 2. First update the fee's paid amount
+        const updatedFee = await tx.fee.update({
+          where: { id: data.feeId },
+          data: {
+            paidAmount: { increment: BigInt(data.amount) },
+          },
+          select: {
+            id: true,
+            totalAmount: true,
+            paidAmount: true,
+            dueDate: true,
+          },
+        });
 
-      return { success: true, error: false };
-    },
-    { timeout: 10000 }
-  );
-  } catch (err) {
-    console.error(err);
-    return { success: false, error: true };
+        // 3. Now calculate and set the status with the updated amounts
+        await tx.fee.update({
+          where: { id: data.feeId },
+          data: {
+            status: await calculateFeeStatus(data.feeId, tx),
+          },
+        });
+
+        return { success: true, error: false };
+      },
+      { timeout: 10000 }
+    );
+  } catch (err: any) {
+    console.error("Error creating payment:", err);
+    return {
+      success: false,
+      error: true,
+      message: err.message || "An unexpected error occurred",
+      details: [{ message: err.message || "Unknown error" }],
+    };
   }
 };
 
 export const updatePayment = async (
   currentState: CurrentState,
   data: PaymentSchema
-) => {
-  if (!data.id) return { success: false, error: true };
+): Promise<CurrentState> => {
+  if (!data.id)
+    return {
+      success: false,
+      error: true,
+      message: "Payment ID is required for an update.",
+    };
 
-  return await prisma.$transaction(async (tx) => {
-    // 1. Get existing payment
-    const oldPayment = await tx.payment.findUnique({
-      where: { id: String(data.id) },
-      select: { amount: true, feeId: true }
+  try {
+    return await prisma.$transaction(async (tx) => {
+      // 1. Get existing payment
+      const oldPayment = await tx.payment.findUnique({
+        where: { id: String(data.id) },
+        select: { amount: true, feeId: true },
+      });
+
+      if (!oldPayment) throw new Error("Payment not found");
+
+      // 2. Update payment
+      const updatedPayment = await tx.payment.update({
+        where: { id: String(data.id) },
+        data: {
+          amount: data.amount,
+          method: data.method,
+          date: data.date,
+          reference: data.reference,
+          transactionId: data.transactionId || null,
+        },
+      });
+      // 3. Calculate difference and update fee
+      const amountDiff = BigInt(data.amount) - BigInt(oldPayment.amount);
+      await tx.fee.update({
+        where: { id: oldPayment.feeId },
+        data: {
+          paidAmount: { increment: amountDiff },
+          status: await calculateFeeStatus(oldPayment.feeId, tx),
+        },
+      });
+
+      return { success: true, error: false };
     });
-
-    if (!oldPayment) throw new Error("Payment not found");
-
-    // 2. Update payment
-    const updatedPayment = await tx.payment.update({
-      where: { id: String(data.id) },
-      data: {
-        amount: data.amount,
-        method: data.method,
-        date: data.date,
-        reference: data.reference,
-        transactionId: data.transactionId || null
-      }
-    });
-    // 3. Calculate difference and update fee
-    const amountDiff = BigInt(data.amount) - BigInt(oldPayment.amount);
-    await tx.fee.update({
-      where: { id: oldPayment.feeId },
-      data: {
-        paidAmount: { increment: amountDiff },
-        status: await calculateFeeStatus(oldPayment.feeId, tx)
-      }
-    });
-
-    return { success: true, error: false };
-  });
+  } catch (err: any) {
+    console.error("Error updating payment:", err);
+    return {
+      success: false,
+      error: true,
+      message: err.message || "An unexpected error occurred",
+      details: [{ message: err.message || "Unknown error" }],
+    };
+  }
 };
 
 export const deletePayment = async (
@@ -1560,7 +1788,7 @@ export const deletePayment = async (
 export const createAttendance = async (  
   currentState: CurrentState,  
   data: AttendanceSchema  
-) => {  
+): Promise<CurrentState> => {  
   try {  
     // Check for existing attendance on the same day  
     const existingAttendance = await prisma.attendance.findFirst({  
@@ -1599,12 +1827,13 @@ export const createAttendance = async (
       error: false,  
       message: "Attendance recorded successfully"   
     };  
-  } catch (err) {  
-    console.error(err);  
+  } catch (err: any) {  
+    console.error("Error creating attendance:", err);  
     return {   
       success: false,   
       error: true,  
-      message: "Failed to create attendance"   
+      message: "Failed to create attendance",
+      details: [{ message: err.message || "Unknown error" }],
     };  
   }  
 };
@@ -1816,7 +2045,7 @@ export const getFeeReceiptData = async (feeId: string) => {
 export const createFinance = async (
   currentState: CurrentState,
   data: FinanceSchema
-) => {
+): Promise<CurrentState> => {
   try {
     await prisma.finance.create({
       data: {
@@ -1827,17 +2056,28 @@ export const createFinance = async (
       },
     });
     return { success: true, error: false };
-  } catch (err) {
-    console.log(err);
-    return { success: false, error: true };
+  } catch (err: any) {
+    console.error("Error creating finance record:", err);
+    return {
+      success: false,
+      error: true,
+      message: err.message || "An unexpected error occurred",
+      details: [{ message: err.message || "Unknown error" }],
+    };
   }
 };
 
 export const updateFinance = async (
   currentState: CurrentState,
   data: FinanceSchema
-) => {
-  if (!data.id) return { success: false, error: true };
+): Promise<CurrentState> => {
+  if (!data.id) {
+    return {
+      success: false,
+      error: true,
+      message: "Finance record ID is required for an update.",
+    };
+  }
 
   try {
     await prisma.finance.update({
@@ -1850,9 +2090,14 @@ export const updateFinance = async (
       },
     });
     return { success: true, error: false };
-  } catch (err) {
-    console.log(err);
-    return { success: false, error: true };
+  } catch (err: any) {
+    console.error("Error updating finance record:", err);
+    return {
+      success: false,
+      error: true,
+      message: err.message || "An unexpected error occurred",
+      details: [{ message: err.message || "Unknown error" }],
+    };
   }
 };
 
@@ -1878,8 +2123,8 @@ export const createTeacherAttendance = async (
     teacherId: string;
     date: Date;
     status: "PRESENT" | "ABSENT" | "LATE";
-    inTime?: Date;
-    outTime?: Date;
+    inTime?: string;
+    outTime?: string;
   }
 ) => {
   try {
@@ -1905,8 +2150,8 @@ export const createTeacherAttendance = async (
         teacherId: data.teacherId,
         date: data.date,
         status: data.status,
-        inTime: data.inTime?.toISOString() || null,
-        outTime: data.outTime?.toISOString() || null,
+        inTime: data.inTime || null,
+        outTime: data.outTime || null,
       },
     });
 
@@ -1914,14 +2159,14 @@ export const createTeacherAttendance = async (
     return {
       success: true,
       error: false,
-      message: "Attendance marked successfully"
     };
-  } catch (err) {
+  } catch (err: any) {
     console.log(err);
     return {
       success: false,
       error: true,
-      message: "Failed to mark attendance"
+      message: "Failed to mark attendance",
+      details: [{ message: err.message || "Unknown error" }],
     };
   }
 };
@@ -1933,8 +2178,8 @@ export const updateTeacherAttendance = async (
     teacherId: string;
     date: Date;
     status: "PRESENT" | "ABSENT" | "LATE";
-    inTime?: Date;
-    outTime?: Date;
+    inTime?: string;
+    outTime?: string;
   }
 ) => {
   if (!data.id) {
@@ -1946,16 +2191,21 @@ export const updateTeacherAttendance = async (
       data: {
         date: data.date,
         teacherId: data.teacherId,
-        inTime: data.inTime?.toISOString() || null,
-        outTime: data.outTime?.toISOString() || null,
+        inTime: data.inTime || null,
+        outTime: data.outTime || null,
         status: data.status
       }
     });
     revalidatePath("/list/teacherattendance");
     return { success: true, error: false };
-  } catch (err) {
+  } catch (err: any) {
     console.error(err);
-    return { success: false, error: true };
+    return {
+      success: false,
+      error: true,
+      message: err.message || "Failed to update attendance",
+      details: [{ message: err.message || "Unknown error" }],
+    };
   }
 };
 

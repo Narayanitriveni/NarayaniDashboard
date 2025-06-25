@@ -193,7 +193,10 @@ export const accountantSchema = z.object({
   email: z.string().email({ message: "Invalid email format!" }).optional().nullable(),
   phone: z.string().min(1, { message: "Phone is required!" }),
   address: z.string().min(1, { message: "Address is required!" }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters!" }).optional(),
+  password: z.string().optional().or(z.literal("")).refine(
+    (val) => !val || val.length === 0 || val.length >= 6,
+    { message: "Password must be at least 6 characters!" }
+  ),
 });
 
 export type AccountantSchema = z.infer<typeof accountantSchema>;

@@ -10,7 +10,7 @@ const menuItems = [
         icon: "/home.png",
         label: "Home",
         href: "/",
-        visible: ["admin", "teacher", "student", "parent"],
+        visible: ["admin", "teacher", "student", "parent","accountant"],
         color: "bg-blue-50"
       },
       {
@@ -33,6 +33,13 @@ const menuItems = [
         href: "/list/parents",
         visible: ["admin", "teacher","accountant"],
         color: "bg-yellow-50"
+      },
+      {
+        icon: "/accountant.png",
+        label: "Accountants",
+        href: "/list/accountants",
+        visible: ["admin"],
+        color: "bg-cyan-50"
       },
       {
         icon: "/badge-indian-rupee1.png",

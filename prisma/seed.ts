@@ -28,271 +28,162 @@ async function main() {
   await prisma.parent.deleteMany({});
   await prisma.grade.deleteMany({});
   await prisma.accountant.deleteMany({});
-//   await prisma.admin.deleteMany({});
 
   console.log('Deleted existing data');
 
-  // Create admin
-//   const admin = await prisma.admin.create({
-//     data: {
-//       username: 'admin',
-//     },
-//   });
-//   console.log(`Created admin: ${admin.username}`);
-
-  // Create accountant
-  // const accountant = await prisma.accountant.create({
-  //   data: {
-  //     username: 'accountant',
-  //     name: 'Finance',
-  //     surname: 'Manager',
-  //     email: 'finance@school.edu',
-  //     phone: '123-456-7890',
-  //     address: '123 School St, Finance Dept',
-  //   },
-  // });
-  // console.log(`Created accountant: ${accountant.username}`);
-
-  // Create grades from 1 to 12
+  // Create grades (only 1-6 for smaller dataset)
   const grades = [];
-  for (let i = 1; i <= 12; i++) {
+  for (let i = 1; i <= 6; i++) {
     const grade = await prisma.grade.create({
-      data: {
-        level: i,
-      },
+      data: { level: i },
     });
     grades.push(grade);
     console.log(`Created grade: ${grade.level}`);
   }
 
-  // Create subjects
+  // Create core subjects (reduced list)
   const subjectNames = [
     'Mathematics',
     'Science',
     'English',
     'History',
     'Geography',
-    'Physics',
-    'Chemistry',
-    'Biology',
     'Computer Science',
     'Physical Education',
-    'Art',
-    'Music',
-    'Foreign Language',
-    'Social Studies',
-    'Economics',
   ];
 
   const subjects = [];
   for (const name of subjectNames) {
     const subject = await prisma.subject.create({
-      data: {
-        name,
-      },
+      data: { name },
     });
     subjects.push(subject);
     console.log(`Created subject: ${subject.name}`);
   }
 
-  // Create 30 teachers
+  // Create 8 teachers (reduced from 30)
   const teachers = [];
-  for (let i = 1; i <= 30; i++) {
+  for (let i = 1; i <= 8; i++) {
     const firstName = faker.person.firstName();
     const lastName = faker.person.lastName();
-    const email = faker.internet.email({ firstName, lastName });
-    
-    // Generate unique teacher ID
     const teacherId = `${i}480730003`;
     
-    // Create teacher in database
     const teacher = await prisma.teacher.create({
       data: {
-        username: `${firstName.toLowerCase()}${lastName.toLowerCase()}${faker.number.int(999)}`.replace(/[^a-z0-9_-]/g, ''),
+        username: `${firstName.toLowerCase()}${lastName.toLowerCase()}${i}`,
         teacherId: teacherId,
         name: firstName,
         surname: lastName,
-        email: email,
+        email: faker.internet.email({ firstName, lastName }),
         phone: faker.phone.number(),
         address: faker.location.streetAddress(),
         img: faker.image.avatar(),
-        bloodType: faker.helpers.arrayElement(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']),
+        bloodType: faker.helpers.arrayElement(['A+', 'B+', 'O+', 'AB+']),
         sex: faker.helpers.arrayElement(['MALE', 'FEMALE']) as UserSex,
-        birthday: faker.date.birthdate({ min: 25, max: 65, mode: 'age' }),
+        birthday: faker.date.birthdate({ min: 25, max: 55, mode: 'age' }),
         subjects: {
           connect: faker.helpers.arrayElements(
             subjects.map(subject => ({ id: subject.id })),
-            { min: 1, max: 3 }
+            { min: 1, max: 2 }
           ),
         },
       },
-      include: {
-        subjects: true
-      }
+      include: { subjects: true }
     });
     
     teachers.push(teacher);
-    console.log(`Created teacher: ${teacher.name} ${teacher.surname} with ID ${teacherId}`);
+    console.log(`Created teacher: ${teacher.name} ${teacher.surname}`);
   }
 
-  // Create teacher attendance records
+  // Create teacher attendance (last 7 days only)
   for (const teacher of teachers) {
-    // Create attendance records for the last 30 days
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 7; i++) {
       const date = new Date();
       date.setDate(date.getDate() - i);
       
-      // Generate random in/out times as strings
-      const inHour = faker.number.int({ min: 7, max: 9 });
-      const inMinute = faker.number.int({ min: 0, max: 59 });
-      const inTime = `${String(inHour).padStart(2, '0')}:${String(inMinute).padStart(2, '0')}`;
-      
-      const outHour = faker.number.int({ min: 15, max: 17 });
-      const outMinute = faker.number.int({ min: 0, max: 59 });
-      const outTime = `${String(outHour).padStart(2, '0')}:${String(outMinute).padStart(2, '0')}`;
-      
-      // Randomly decide attendance status
       const status = faker.helpers.arrayElement(['PRESENT', 'ABSENT', 'LATE']) as AttendanceStatus;
       
-      // Only set in/out times if present or late
       const attendanceData = {
         date,
         teacherId: teacher.id,
         status,
         ...(status !== 'ABSENT' ? {
-          inTime: status === 'LATE' ? `${String(inHour + 1).padStart(2, '0')}:${String(inMinute).padStart(2, '0')}` : inTime,
-          outTime: status === 'LATE' ? `${String(outHour + 1).padStart(2, '0')}:${String(outMinute).padStart(2, '0')}` : outTime,
+          inTime: status === 'LATE' ? '09:30' : '08:00',
+          outTime: status === 'LATE' ? '16:30' : '15:00',
         } : {})
       };
 
-      await prisma.teacherAttendance.create({
-        data: attendanceData
-      });
+      await prisma.teacherAttendance.create({ data: attendanceData });
     }
-    console.log(`Created attendance records for teacher: ${teacher.name} ${teacher.surname}`);
   }
 
-  // Create classes with sections for each grade
-  const classCapacity = 30;
+  // Create classes (only 1 section per grade)
   const classes = [];
-
   for (const grade of grades) {
-    // For grades 1-4, create sections A and B
-    if (grade.level <= 4) {
-      const sections = ['A', 'B'];
-      for (const section of sections) {
-        const classTeacher = faker.helpers.arrayElement(teachers);
-        const classObj = await prisma.class.create({
-          data: {
-            name: `${grade.level}${section}`,
-            capacity: classCapacity,
-            gradeId: grade.id,
-            supervisorId: classTeacher.id,
-          },
-        });
-        classes.push(classObj);
-        console.log(`Created class: ${classObj.name}`);
-      }
-    }
-    // For grades 5-8, create sections A, B, and C
-    else if (grade.level <= 8) {
-      const sections = ['A', 'B', 'C'];
-      for (const section of sections) {
-        const classTeacher = faker.helpers.arrayElement(teachers);
-        const classObj = await prisma.class.create({
-          data: {
-            name: `${grade.level}${section}`,
-            capacity: classCapacity,
-            gradeId: grade.id,
-            supervisorId: classTeacher.id,
-          },
-        });
-        classes.push(classObj);
-        console.log(`Created class: ${classObj.name}`);
-      }
-    }
-    // For grades 9-12, create sections A, B, C, and D
-    else {
-      const sections = ['A', 'B', 'C', 'D'];
-      for (const section of sections) {
-        const classTeacher = faker.helpers.arrayElement(teachers);
-        const classObj = await prisma.class.create({
-          data: {
-            name: `${grade.level}${section}`,
-            capacity: classCapacity,
-            gradeId: grade.id,
-            supervisorId: classTeacher.id,
-          },
-        });
-        classes.push(classObj);
-        console.log(`Created class: ${classObj.name}`);
-      }
-    }
+    const classTeacher = faker.helpers.arrayElement(teachers);
+    const classObj = await prisma.class.create({
+      data: {
+        name: `${grade.level}A`,
+        capacity: 25,
+        gradeId: grade.id,
+        supervisorId: classTeacher.id,
+      },
+    });
+    classes.push(classObj);
+    console.log(`Created class: ${classObj.name}`);
   }
 
-  // Create 50 parents
+  // Create 12 parents (reduced from 50)
   const parents = [];
-  for (let i = 1; i <= 50; i++) {
+  for (let i = 1; i <= 12; i++) {
     const firstName = faker.person.firstName();
     const lastName = faker.person.lastName();
-    const email = faker.internet.email({ firstName, lastName });
-    
-    // Generate parent ID
     const currentYear = new Date().getFullYear();
     const parentId = `P-${currentYear}-${String(i).padStart(4, '0')}`;
     
-    // Create parent in database
     const parent = await prisma.parent.create({
       data: {
-        username: `parent_${firstName.toLowerCase()}${lastName.toLowerCase()}${faker.number.int(999)}`.replace(/[^a-z0-9_-]/g, ''),
+        username: `parent_${firstName.toLowerCase()}${lastName.toLowerCase()}${i}`,
         parentId: parentId,
         name: firstName,
         surname: lastName,
-        email: email,
+        email: faker.internet.email({ firstName, lastName }),
         phone: faker.phone.number(),
         address: faker.location.streetAddress(),
       },
     });
     
     parents.push(parent);
-    console.log(`Created parent: ${parent.name} ${parent.surname} with ID ${parentId}`);
+    console.log(`Created parent: ${parent.name} ${parent.surname}`);
   }
 
-  // Create 100 students
+  // Create 24 students (2 per parent, reduced from 100)
   const students = [];
-  let studentCount = 0;
-  
-  while (studentCount < 100) {
+  for (let i = 0; i < 24; i++) {
     const classObj = faker.helpers.arrayElement(classes);
     const firstName = faker.person.firstName();
     const lastName = faker.person.lastName();
-    const email = faker.internet.email({ firstName, lastName });
+    const parent = parents[Math.floor(i / 2)];
     
-    // Assign parent (each parent should have 2 students)
-    const parentIndex = Math.floor(studentCount / 2);
-    const parent = parents[parentIndex % parents.length];
-    
-    // Generate student ID
     const dateString = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`;
     const nameInitials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
     const randomDigits = Math.floor(Math.random() * 900) + 100;
     const studentId = `${dateString}${nameInitials}${randomDigits}`;
     
-    // Create student in database
     const student = await prisma.student.create({
       data: {
-        username: `student_${firstName.toLowerCase()}${lastName.toLowerCase()}${faker.number.int(999)}`.replace(/[^a-z0-9_-]/g, ''),
+        username: `student_${firstName.toLowerCase()}${lastName.toLowerCase()}${i + 1}`,
         StudentId: studentId,
         IEMISCODE: faker.number.int({ min: 100000, max: 999999 }),
         name: firstName,
         surname: lastName,
         motherName: faker.person.firstName() + ' ' + faker.person.lastName(),
         fatherName: faker.person.firstName() + ' ' + faker.person.lastName(),
-        email: email,
+        email: faker.internet.email({ firstName, lastName }),
         phone: faker.phone.number(),
         address: faker.location.streetAddress(),
         img: faker.image.avatar(),
-        bloodType: faker.helpers.arrayElement(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']),
+        bloodType: faker.helpers.arrayElement(['A+', 'B+', 'O+', 'AB+']),
         sex: faker.helpers.arrayElement(['MALE', 'FEMALE']) as UserSex,
         birthday: faker.date.birthdate({ min: 6, max: 18, mode: 'age' }),
         disability: 'NONE',
@@ -303,22 +194,19 @@ async function main() {
     });
     
     students.push(student);
-    console.log(`Created student: ${student.name} ${student.surname} in class ${classObj.name} with ID ${studentId}, Parent: ${parent.name} ${parent.surname}`);
-    
+    console.log(`Created student: ${student.name} ${student.surname} in class ${classObj.name}`);
+
     // Create fee for student
-    const totalAmount = BigInt(faker.number.int({ min: 5000, max: 10000 }));
+    const totalAmount = BigInt(faker.number.int({ min: 5000, max: 8000 }));
     const paidAmount = BigInt(faker.number.int({ min: 0, max: Number(totalAmount) }));
-    const balance = totalAmount - paidAmount; // Calculate correct balance
     const dueDate = faker.date.future();
     
-    // Determine fee status based on payment amount and due date
     let feeStatus: FeeStatus;
-    if (balance <= BigInt(0)) {
+    if (paidAmount >= totalAmount) {
       feeStatus = 'PAID';
     } else if (paidAmount === BigInt(0)) {
       feeStatus = dueDate < today ? 'OVERDUE' : 'UNPAID';
     } else {
-      // Partially paid
       feeStatus = dueDate < today ? 'OVERDUE' : 'PARTIAL';
     }
     
@@ -333,18 +221,13 @@ async function main() {
       },
     });
     
-    // Create payment for fee
+    // Create payment if any amount is paid
     if (paidAmount > BigInt(0)) {
-      const paymentMethod = faker.helpers.arrayElement(['CASH', 'CARD', 'BANK_TRANSFER', 'UPI']) as PaymentMethod;
-      
-      // For cash payments, don't use a transaction ID
-      const transactionId = paymentMethod === 'CASH' 
-        ? null 
-        : `TXN${faker.string.alphanumeric(8).toUpperCase()}`;
+      const paymentMethod = faker.helpers.arrayElement(['CASH', 'CARD', 'UPI']) as PaymentMethod;
       
       await prisma.payment.create({
         data: {
-          transactionId,
+          transactionId: paymentMethod === 'CASH' ? null : `TXN${faker.string.alphanumeric(6).toUpperCase()}`,
           amount: paidAmount,
           date: faker.date.recent(),
           method: paymentMethod,
@@ -353,27 +236,20 @@ async function main() {
         },
       });
     }
-    
-    studentCount++;
   }
 
-  // Create lessons for each class (limited number)
-  const dayOptions: Day[] = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY','SATURDAY'];
-  
-  // Create only 50 lessons total
-  const totalLessons = 50;
+  // Create lessons (reduced to 15 total)
+  const dayOptions: Day[] = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
   let lessonCount = 0;
   
   for (const classObj of classes) {
-    if (lessonCount >= totalLessons) break;
+    if (lessonCount >= 15) break;
     
-    // Assign 2-3 subjects to each class
-    const classSubjects = faker.helpers.arrayElements(subjects, { min: 2, max: 3 });
+    const classSubjects = faker.helpers.arrayElements(subjects, { min: 1, max: 2 });
     
     for (const subject of classSubjects) {
-      if (lessonCount >= totalLessons) break;
+      if (lessonCount >= 15) break;
       
-      // Assign a teacher who teaches this subject
       const eligibleTeachers = teachers.filter(teacher => 
         teacher.subjects.some(s => s.id === subject.id)
       );
@@ -382,117 +258,78 @@ async function main() {
         ? faker.helpers.arrayElement(eligibleTeachers) 
         : faker.helpers.arrayElement(teachers);
       
-      // Create 1-2 lessons per subject
-      const lessonsPerSubject = faker.number.int({ min: 1, max: 2 });
+      const day = faker.helpers.arrayElement(dayOptions);
+      const startHour = faker.number.int({ min: 8, max: 14 });
+      const startTime = new Date();
+      startTime.setHours(startHour, 0, 0);
       
-      for (let i = 0; i < lessonsPerSubject; i++) {
-        if (lessonCount >= totalLessons) break;
+      const endTime = new Date(startTime);
+      endTime.setHours(startHour + 1, 0, 0);
+      
+      const lesson = await prisma.lesson.create({
+        data: {
+          name: `${subject.name} - ${classObj.name}`,
+          day,
+          startTime,
+          endTime,
+          subjectId: subject.id,
+          classId: classObj.id,
+          teacherId: teacher.id,
+        },
+      });
+      
+      console.log(`Created lesson: ${lesson.name} on ${day}`);
+      lessonCount++;
+      
+      // Create attendance for this lesson (5-8 students)
+      const classStudents = students.filter(student => student.classId === classObj.id);
+      const studentsForAttendance = faker.helpers.arrayElements(
+        classStudents,
+        faker.number.int({ min: 5, max: 8 })
+      );
+      
+      for (const student of studentsForAttendance) {
+        const attendanceDate = faker.date.recent();
+        const inTime = new Date(attendanceDate);
+        inTime.setHours(startHour, faker.number.int({ min: 0, max: 30 }), 0);
         
-        const day = faker.helpers.arrayElement(dayOptions);
-        const startHour = faker.number.int({ min: 8, max: 14 });
-        const startTime = new Date();
-        startTime.setHours(startHour, 0, 0);
-        
-        const endTime = new Date(startTime);
-        endTime.setHours(startHour + 1, 0, 0);
-        
-        const lesson = await prisma.lesson.create({
+        await prisma.attendance.create({
           data: {
-            name: `${subject.name} - ${classObj.name}`,
-            day,
-            startTime,
-            endTime,
-            subjectId: subject.id,
+            date: attendanceDate,
+            studentId: student.id,
             classId: classObj.id,
-            teacherId: teacher.id,
+            lessonId: lesson.id,
+            inTime: inTime,
+            status: faker.helpers.arrayElement(['PRESENT', 'ABSENT', 'LATE']) as AttendanceStatus,
+          },
+        });
+      }
+      
+      // Create assignment for some lessons
+      if (faker.datatype.boolean()) {
+        const assignment = await prisma.assignment.create({
+          data: {
+            title: `${subject.name} Assignment`,
+            startDate: faker.date.recent(),
+            dueDate: faker.date.future(),
+            lessonId: lesson.id,
           },
         });
         
-        console.log(`Created lesson: ${lesson.name} on ${day}`);
-        lessonCount++;
-        
-        // Create attendance records for this lesson (limited to 5-10 students per lesson)
-        const classStudents = students.filter(student => student.classId === classObj.id);
-        const studentsForAttendance = faker.helpers.arrayElements(
+        // Create results for assignment (3-5 students)
+        const studentsForResults = faker.helpers.arrayElements(
           classStudents,
-          faker.number.int({ min: 5, max: 10 })
+          faker.number.int({ min: 3, max: 5 })
         );
         
-        for (const student of studentsForAttendance) {
-          const attendanceDate = faker.date.recent();
-          const inTime = new Date(attendanceDate);
-          inTime.setHours(startHour, faker.number.int({ min: 0, max: 30 }), 0);
-          
-          // Randomly decide if this attendance should be associated with a lesson
-          const shouldAssociateWithLesson = faker.datatype.boolean();
-          
-          await prisma.attendance.create({
+        for (const student of studentsForResults) {
+          await prisma.result.create({
             data: {
-              date: attendanceDate,
+              score: faker.number.int({ min: 60, max: 100 }),
+              assignmentId: assignment.id,
               studentId: student.id,
-              classId: classObj.id,
-              ...(shouldAssociateWithLesson ? { lessonId: lesson.id } : {}),
-              inTime: inTime,
-              status: faker.helpers.arrayElement(['PRESENT', 'ABSENT', 'LATE']) as AttendanceStatus,
             },
           });
-        }
-        
-        // Create assignments for some lessons
-        if (faker.datatype.boolean()) {
-          const assignment = await prisma.assignment.create({
-            data: {
-              title: `${subject.name} Assignment`,
-              startDate: faker.date.recent(),
-              dueDate: faker.date.future(),
-              lessonId: lesson.id,
-            },
-          });
-          
-          // Create results for the assignment (limited to 5-10 students)
-          const studentsForResults = faker.helpers.arrayElements(
-            classStudents,
-            faker.number.int({ min: 5, max: 10 })
-          );
-          
-          for (const student of studentsForResults) {
-            await prisma.result.create({
-              data: {
-                score: faker.number.int({ min: 0, max: 100 }),
-                assignmentId: assignment.id,
-                studentId: student.id,
-              },
-            });
-          }
-        }
-        
-        // Create exams for some lessons
-        if (faker.datatype.boolean()) {
-          const exam = await prisma.exam.create({
-            data: {
-              title: `${subject.name} Exam`,
-              startTime: faker.date.recent(),
-              endTime: faker.date.recent(),
-              subjectId: subject.id,
-              classId: classObj.id,
-            },
-          });
-          
-          // Create results for the exam (limited to 5-10 students)
-          const studentsForExamResults = faker.helpers.arrayElements(
-            classStudents,
-            faker.number.int({ min: 5, max: 10 })
-          );
-          
-          for (const student of studentsForExamResults) {
-            await prisma.result.create({
-              data: {
-                score: faker.number.int({ min: 0, max: 100 }),
-                examId: exam.id,
-                studentId: student.id,
-              },
-            });
-          }
         }
       }
     }
@@ -503,7 +340,7 @@ async function main() {
     const classStudents = students.filter(student => student.classId === classObj.id);
     const studentsForGeneralAttendance = faker.helpers.arrayElements(
       classStudents,
-      faker.number.int({ min: 5, max: 10 })
+      faker.number.int({ min: 3, max: 5 })
     );
     
     for (const student of studentsForGeneralAttendance) {
@@ -523,22 +360,20 @@ async function main() {
     }
   }
 
-  // Create events
-  for (let i = 0; i < 10; i++) {
+  // Create 3 events
+  for (let i = 0; i < 3; i++) {
     const startTime = faker.date.future();
     const endTime = new Date(startTime);
-    endTime.setHours(endTime.getHours() + faker.number.int({ min: 1, max: 3 }));
+    endTime.setHours(endTime.getHours() + faker.number.int({ min: 1, max: 2 }));
     
     await prisma.event.create({
       data: {
         title: faker.helpers.arrayElement([
           'Annual Sports Day', 
           'Science Exhibition', 
-          'Parent-Teacher Meeting', 
-          'Cultural Festival', 
-          'Career Counseling Session'
+          'Parent-Teacher Meeting'
         ]),
-        description: faker.lorem.paragraph(),
+        description: faker.lorem.sentence(),
         startTime,
         endTime,
         classId: faker.helpers.arrayElement([null, ...classes.map(c => c.id)]),
@@ -546,18 +381,17 @@ async function main() {
     });
   }
 
-  // Create announcements
-  for (let i = 0; i < 15; i++) {
+  // Create 5 announcements
+  for (let i = 0; i < 5; i++) {
     await prisma.announcement.create({
       data: {
         title: faker.helpers.arrayElement([
           'Important Notice', 
           'Upcoming Event', 
           'Schedule Change', 
-          'Holiday Announcement', 
-          'Exam Schedule'
+          'Holiday Announcement'
         ]),
-        description: faker.lorem.paragraph(),
+        description: faker.lorem.sentence(),
         date: faker.date.recent(),
         classId: faker.helpers.arrayElement([null, ...classes.map(c => c.id)]),
       },
@@ -565,7 +399,7 @@ async function main() {
   }
 
   console.log('Seeding completed successfully!');
-  console.log(`Created 30 teachers, 50 parents, and 100 students`);
+  console.log(`Created 8 teachers, 12 parents, and 24 students`);
   console.log('Each parent is associated with 2 students');
 }
 

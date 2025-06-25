@@ -43,7 +43,7 @@ const TeacherAttendanceListPage = async (
   const formatBSDate = (date: Date) => {
     const bsDate = ADToBS(date.toISOString().split('T')[0]);
     const [year, month, day] = bsDate.split('-').map(Number);
-    return `${nepaliMonths[month - 1]} ${day-1}, ${year}`;
+    return `${nepaliMonths[month - 1]} ${day}, ${year}`;
   };
 
   // --- Fetch all attendance for summary cards ---

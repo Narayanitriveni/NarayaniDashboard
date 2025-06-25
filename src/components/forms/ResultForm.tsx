@@ -9,6 +9,7 @@ import { useFormState } from "react-dom";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
+import ErrorDisplay from "../ui/error-display";
 
 const ResultForm = ({
   type,
@@ -31,25 +32,40 @@ const ResultForm = ({
     resolver: zodResolver(resultSchema),
   });
 
+  const [loading, setLoading] = useState(false);
+  const [showError, setShowError] = useState(false);
+
   const [state, formAction] = useFormState(
     type === "create" ? createResult : updateResult,
     {
       success: false,
       error: false,
+      message: "",
+      details: null,
     }
   );
 
-  const onSubmit = handleSubmit((data) => {
-    formAction(data);
+  const onSubmit = handleSubmit(async (data) => {
+    setLoading(true);
+    setShowError(false);
+    await formAction(data);
+    setLoading(false);
   });
 
   const router = useRouter();
 
   useEffect(() => {
     if (state.success) {
-      toast(`Result has been ${type === "create" ? "created" : "updated"}!`);
+      toast.success(`Result has been ${type === "create" ? "created" : "updated"}!`);
       setOpen(false);
       router.refresh();
+    }
+    if (state.error) {
+      setShowError(true);
+      toast.error(state.message || "Something went wrong!");
+    }
+    if (state.success || state.error) {
+      setLoading(false);
     }
   }, [state, router, type, setOpen]);
 
@@ -67,7 +83,11 @@ const ResultForm = ({
       const initialStudent = students.find((s: any) => s.id === data.studentId);
       if (initialStudent) {
         setSelectedStudent(initialStudent);
-        setSearchTerm(`${initialStudent.name} ${initialStudent.surname} (${initialStudent.StudentId || 'N/A'})`);
+        setSearchTerm(
+          `${initialStudent.name} ${initialStudent.surname} (${
+            initialStudent.StudentId || "N/A"
+          })`
+        );
       }
     }
   }, [data, students]);
@@ -81,7 +101,9 @@ const ResultForm = ({
 
   const handleStudentSelect = (student: any) => {
     setSelectedStudent(student);
-    setSearchTerm(`${student.name} ${student.surname} (${student.StudentId || 'N/A'})`);
+    setSearchTerm(
+      `${student.name} ${student.surname} (${student.StudentId || "N/A"})`
+    );
     setValue("studentId", student.id);
     setTimeout(() => setIsDropdownOpen(false), 100);
   };
@@ -105,6 +127,15 @@ const ResultForm = ({
       <h1 className="text-xl font-semibold">
         {type === "create" ? "Create a new result" : "Update the result"}
       </h1>
+
+      {showError && state.error && (
+        <ErrorDisplay
+          error={state.details || state.message || "An error occurred"}
+          title="Error Details"
+          onClose={() => setShowError(false)}
+          className="mb-4"
+        />
+      )}
 
       <div className="flex justify-between flex-wrap gap-4">
         {data && (
@@ -140,10 +171,16 @@ const ResultForm = ({
                   onClick={() => handleStudentSelect(student)}
                 >
                   <div className="flex justify-between items-center">
-                    <span>{student.name} {student.surname}</span>
-                    <span className="text-gray-500 text-sm">ID: {student.StudentId || 'N/A'}</span>
+                    <span>
+                      {student.name} {student.surname}
+                    </span>
+                    <span className="text-gray-500 text-sm">
+                      ID: {student.StudentId || "N/A"}
+                    </span>
                   </div>
-                  <div className="text-xs text-gray-500">{student.class?.name}</div>
+                  <div className="text-xs text-gray-500">
+                    {student.class?.name}
+                  </div>
                 </div>
               ))}
             </div>
@@ -158,7 +195,9 @@ const ResultForm = ({
             <input type="hidden" {...register("studentId")} />
           )}
           {errors.studentId?.message && (
-            <p className="text-xs text-red-400">{errors.studentId.message.toString()}</p>
+            <p className="text-xs text-red-400">
+              {errors.studentId.message.toString()}
+            </p>
           )}
         </div>
 
@@ -207,11 +246,13 @@ const ResultForm = ({
               defaultValue={data?.assignmentId}
             >
               <option value="">Select an assignment</option>
-              {assignments.map((assignment: { id: number; title: string; lesson: any }) => (
-                <option value={assignment.id} key={assignment.id}>
-                  {assignment.title} - {assignment.lesson?.class?.name}
-                </option>
-              ))}
+              {assignments.map(
+                (assignment: { id: number; title: string; lesson: any }) => (
+                  <option value={assignment.id} key={assignment.id}>
+                    {assignment.title} - {assignment.lesson?.class?.name}
+                  </option>
+                )
+              )}
             </select>
             {errors.assignmentId?.message && (
               <p className="text-xs text-red-400">
@@ -228,15 +269,25 @@ const ResultForm = ({
           defaultValue={data?.score}
           register={register}
           error={errors?.score}
-         
         />
       </div>
 
-      {state.error && (
-        <span className="text-red-500">Something went wrong!</span>
-      )}
-      <button className="bg-blue-400 text-white p-2 rounded-md">
-        {type === "create" ? "Create" : "Update"}
+      <button
+        type="submit"
+        disabled={loading}
+        className={`p-2 rounded-md text-white transition ${
+          loading
+            ? "bg-blue-300 cursor-not-allowed"
+            : "bg-blue-400 hover:bg-blue-500"
+        }`}
+      >
+        {loading
+          ? type === "create"
+            ? "Creating..."
+            : "Updating..."
+          : type === "create"
+          ? "Create"
+          : "Update"}
       </button>
     </form>
   );

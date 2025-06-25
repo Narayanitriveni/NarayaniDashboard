@@ -66,7 +66,10 @@ const AccountantListPage = async (
       <td>
         <div className="flex items-center gap-2">
           {role === "admin" && (
-            <FormContainer table="accountant" type="delete" id={item.id} />
+            <>
+              <FormContainer table="accountant" type="update" data={item} />
+              <FormContainer table="accountant" type="delete" id={item.id} />
+            </>
           )}
         </div>
       </td>

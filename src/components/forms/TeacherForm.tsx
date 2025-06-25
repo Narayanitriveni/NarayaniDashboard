@@ -12,6 +12,15 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { CldUploadWidget } from "next-cloudinary";
 import { ADToBS, BSToAD } from "bikram-sambat-js";
+import ErrorDisplay from "../ui/error-display";
+
+// Add this type definition after imports
+type FormState = {
+  success: boolean;
+  error: boolean;
+  message?: string;
+  details?: any;
+}
 
 const TeacherForm = ({
   type,
@@ -36,6 +45,8 @@ const TeacherForm = ({
 
   const [img, setImg] = useState<any>();
   const [bsBirthday, setBsBirthday] = useState<string>("");
+  const [loading, setLoading] = useState(false);
+  const [showError, setShowError] = useState(false);
 
   // Convert AD date to BS when component mounts or data changes
   useEffect(() => {
@@ -67,16 +78,26 @@ const TeacherForm = ({
     }
   };
 
-  const [state, formAction] = useFormState(
-    type === "create" ? createTeacher : updateTeacher,
+  const [state, formAction] = useFormState<FormState, TeacherSchema>(
+    async (_, data) => {
+      if (type === "create") {
+        return createTeacher({ success: false, error: false, message: "" }, data);
+      }
+      return updateTeacher({ success: false, error: false, message: "" }, data);
+    },
     {
       success: false,
       error: false,
+      message: "",
+      details: null,
     }
   );
 
   const onSubmit = handleSubmit(async (formData) => {
     try {
+      setLoading(true);
+      setShowError(false);
+      
       // Ensure email is in correct format for Clerk
       const emailData = {
         ...formData,
@@ -84,7 +105,7 @@ const TeacherForm = ({
         img: img?.secure_url
       };
       
-      await formAction(emailData);
+      formAction(emailData);
     } catch (error: any) {
       // Handle Clerk errors
       if (error.errors?.[0]) {
@@ -98,19 +119,25 @@ const TeacherForm = ({
           toast.error(clerkError.longMessage || 'Something went wrong');
         }
       }
+    } finally {
+      setLoading(false);
     }
   });
 
   const router = useRouter();
 
   useEffect(() => {
-    if (state.error) {
-      toast.error('Failed to save teacher. Please check all fields and try again.');
-    }
     if (state.success) {
       toast.success(`Teacher has been ${type === "create" ? "created" : "updated"}!`);
       setOpen(false);
       router.refresh();
+    }
+    if (state.error) {
+      setShowError(true);
+      toast.error(state.message || "Something went wrong!");
+    }
+    if (state.success || state.error) {
+      setLoading(false);
     }
   }, [state, router, type, setOpen]);
 
@@ -121,6 +148,16 @@ const TeacherForm = ({
       <h1 className="text-xl font-semibold">
         {type === "create" ? "Create a new teacher" : "Update the teacher"}
       </h1>
+
+      {showError && state.error && (
+        <ErrorDisplay
+          error={state.details || state.message || "An error occurred"}
+          title="Error Details"
+          onClose={() => setShowError(false)}
+          className="mb-4"
+        />
+      )}
+
       <span className="text-xs text-gray-400 font-medium">
         Authentication Information
       </span>
@@ -238,45 +275,55 @@ const TeacherForm = ({
             </p>
           )}
         </div>
-        <CldUploadWidget
-          uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "school"}
-          onSuccess={(result, { widget }) => {
-            setImg(result.info);
-            widget.close();
-          }}
-        >
-          {({ open }) => {
-            return (
-              <div className="flex flex-col items-center gap-2">
-                <div
-                  className="text-xs text-gray-500 flex items-center gap-2 cursor-pointer"
-                  onClick={() => open()}
-                >
-                  <Image src="/upload.png" alt="" width={28} height={28} />
-                  <span>Upload a photo</span>
-                </div>
-
-                {img && (
-                  <div className="mt-2">
-                    <Image
-                      src={img.secure_url}
-                      alt="Uploaded Image Preview"
-                      width={100}
-                      height={100}
-                      className="rounded-lg border"
-                    />
+        <div className="flex justify-center w-full">
+          <CldUploadWidget
+            uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "school"}
+            onSuccess={(result, { widget }) => {
+              setImg(result.info);
+              widget.close();
+            }}
+          >
+            {({ open }) => {
+              return (
+                <div className="flex flex-col items-center gap-2">
+                  <div
+                    className="text-xs text-gray-500 flex items-center gap-2 cursor-pointer"
+                    onClick={() => open()}
+                  >
+                    <Image src="/upload.png" alt="" width={28} height={28} />
+                    <span>Upload a photo</span>
                   </div>
-                )}
-              </div>
-            );
-          }}
-        </CldUploadWidget>
+
+                  {img && (
+                    <div className="mt-2">
+                      <Image
+                        src={img.secure_url}
+                        alt="Uploaded Image Preview"
+                        width={100}
+                        height={100}
+                        className="rounded-lg border"
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            }}
+          </CldUploadWidget>
+        </div>
       </div>
-      {state.error && (
-        <span className="text-red-500">Something went wrong!</span>
-      )}
-      <button className="bg-blue-400 text-white p-2 rounded-md">
-        {type === "create" ? "Create" : "Update"}
+      
+      <button
+        type="submit"
+        disabled={loading}
+        className={`${
+          loading ? "bg-gray-400" : "bg-blue-400"
+        } text-white p-2 rounded-md transition-colors`}
+      >
+        {loading
+          ? `${type === "create" ? "Creating" : "Updating"}...`
+          : type === "create"
+          ? "Create"
+          : "Update"}
       </button>
     </form>
   );

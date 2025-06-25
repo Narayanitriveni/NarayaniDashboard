@@ -6,9 +6,17 @@ import InputField from "../InputField";
 import { subjectSchema, SubjectSchema } from "@/lib/formValidationSchemas";
 import { createSubject, updateSubject } from "@/lib/actions";
 import { useFormState } from "react-dom";
-import { Dispatch, SetStateAction, useEffect } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
+import ErrorDisplay from "../ui/error-display";
+
+type FormState = {
+  success: boolean;
+  error: boolean;
+  message?: string;
+  details?: any;
+};
 
 const SubjectForm = ({
   type,
@@ -29,28 +37,44 @@ const SubjectForm = ({
     resolver: zodResolver(subjectSchema),
   });
 
-  // AFTER REACT 19 IT'LL BE USEACTIONSTATE
+  const [loading, setLoading] = useState(false);
+  const [showError, setShowError] = useState(false);
 
-  const [state, formAction] = useFormState(
-    type === "create" ? createSubject : updateSubject,
+  const [state, formAction] = useFormState<FormState, SubjectSchema>(
+    async (_, data) => {
+      if (type === "create") {
+        return createSubject({ success: false, error: false }, data);
+      }
+      return updateSubject({ success: false, error: false }, data);
+    },
     {
       success: false,
       error: false,
+      message: "",
+      details: null,
     }
   );
 
-  const onSubmit = handleSubmit((data) => {
-    console.log(data);
+  const onSubmit = handleSubmit(async (data) => {
+    setLoading(true);
+    setShowError(false);
     formAction(data);
   });
 
   const router = useRouter();
 
   useEffect(() => {
-    if (state&&state.success) {
-      toast(`Subject has been ${type === "create" ? "created" : "updated"}!`);
+    if (state.success) {
+      toast.success(`Subject has been ${type === "create" ? "created" : "updated"}!`);
       setOpen(false);
       router.refresh();
+    }
+    if (state.error) {
+      setShowError(true);
+      toast.error(state.message || "Something went wrong!");
+    }
+    if (state.success || state.error) {
+      setLoading(false);
     }
   }, [state, router, type, setOpen]);
 
@@ -61,6 +85,15 @@ const SubjectForm = ({
       <h1 className="text-xl font-semibold">
         {type === "create" ? "Create a new subject" : "Update the subject"}
       </h1>
+
+      {showError && state.error && (
+        <ErrorDisplay
+          error={state.details || state.message || "An error occurred"}
+          title="Error Details"
+          onClose={() => setShowError(false)}
+          className="mb-4"
+        />
+      )}
 
       <div className="flex justify-between flex-wrap gap-4">
         <InputField
@@ -103,11 +136,19 @@ const SubjectForm = ({
           )}
         </div>
       </div>
-      {state?.error && (
-        <span className="text-red-500">Something went wrong!</span>
-      )}
-      <button className="bg-blue-400 text-white p-2 rounded-md">
-        {type === "create" ? "Create" : "Update"}
+      
+      <button
+        type="submit"
+        disabled={loading}
+        className={`${
+          loading ? "bg-gray-400" : "bg-blue-400"
+        } text-white p-2 rounded-md transition-colors`}
+      >
+        {loading
+          ? `${type === "create" ? "Creating" : "Updating"}...`
+          : type === "create"
+          ? "Create"
+          : "Update"}
       </button>
     </form>
   );

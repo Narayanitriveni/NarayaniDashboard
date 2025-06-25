@@ -5,6 +5,7 @@ import type { CalendarProps, Event } from "react-big-calendar";
 import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { useState } from "react";
+import { ADToBS } from "bikram-sambat-js";
 
 const localizer = momentLocalizer(moment);
 
@@ -48,11 +49,16 @@ const CalendarComponent = ({
         min={new Date(2025, 1, 0, 8, 0, 0)}
         max={new Date(2025, 1, 0, 17, 0, 0)}
         components={{
-          event: ({ event }: { event: CalendarEvent }) => (
-            <span title={event.title} style={{ display: 'block', width: '100%' }}>
-              {event.title}
-            </span>
-          ),
+          event: ({ event }: { event: CalendarEvent }) => {
+            const bsStart = ADToBS(event.start);
+            const bsEnd = ADToBS(event.end);
+            return (
+              <span title={`${event.title} (BS: ${bsStart} - ${bsEnd})`} style={{ display: 'block', width: '100%' }}>
+                {event.title} <br />
+                <span style={{ fontSize: '0.8em', color: '#888' }}>BS: {bsStart} - {bsEnd}</span>
+              </span>
+            );
+          },
         }}
       />
     </div>

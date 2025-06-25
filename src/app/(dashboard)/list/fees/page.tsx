@@ -62,13 +62,10 @@ const FeesListPage = async (
           case "studentId":
             query.studentId = value;
             break;
-          case "type":
-            query.type = value;
-            break;
           case "search":
             query.OR = [
               { student: { name: { contains: value, mode: "insensitive" } } },
-              { type: { contains: value, mode: "insensitive" } },
+              { student: { StudentId: { contains: value, mode: "insensitive" } } },
             ];
             break;
           default:
@@ -211,7 +208,7 @@ const FeesListPage = async (
               <Image src="/filter.png" alt="" width={14} height={14} />
             </button>
             <SortDropdown options={sortOptions} defaultSort="date" />
-            {role === "admin" && <FormContainer table="fee" type="create" />}
+            {(role === "admin" || role === "accountant") && <FormContainer table="fee" type="create" />}
           </div>
         </div>
       </div>
