@@ -111,6 +111,11 @@ const ErrorDisplay = ({
       return "Password doesn't meet security requirements. Please use a stronger password.";
     }
     
+    // Username length error
+    if (code === "form_username_invalid_length") {
+      return "Username must be between 4 and 64 characters long.";
+    }
+    
     // Prisma specific errors
     if (message.includes("Unique constraint")) {
       if (message.includes("username")) {

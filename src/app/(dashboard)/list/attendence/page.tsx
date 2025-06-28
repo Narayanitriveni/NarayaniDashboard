@@ -9,6 +9,7 @@ import { Attendance, Student, Class, Lesson } from "@prisma/client";
 import { auth } from "@clerk/nextjs/server";
 import { ADToBS } from "bikram-sambat-js";
 import Image from "next/image";
+import { Card, CardContent, CardTitle } from "@/components/ui/card";
 
 type AttendanceWithRelations = Attendance & {
   student: Student & { class: Class };
@@ -37,6 +38,28 @@ const AttendanceListPage = async (
   const sessionClaims = session.sessionClaims;
   const role = (sessionClaims?.metadata as { role?: string })?.role;
   const currentUserId = userId;
+
+  // --- Summary Card Calculations ---
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const totalStudents = await prisma.student.count();
+  
+  // Get today's attendance records
+  const todayAttendance = await prisma.attendance.findMany({
+    where: {
+      date: {
+        gte: today,
+        lt: new Date(today.getTime() + 24 * 60 * 60 * 1000)
+      }
+    },
+    orderBy: { date: 'desc' }
+  });
+
+  const presentToday = todayAttendance.filter(a => a.status === "PRESENT").length;
+  const absentToday = todayAttendance.filter(a => a.status === "ABSENT").length;
+  const lateToday = todayAttendance.filter(a => a.status === "LATE").length;
+  const attendancePercentage = totalStudents > 0 ? ((presentToday + lateToday) / totalStudents) * 100 : 0;
+  // --- End Summary Card Calculations ---
 
   const nepaliMonths = [
     'बैशाख', 'जेठ', 'आषाढ', 'श्रावण', 'भाद्र', 'आश्विन',
@@ -159,6 +182,35 @@ const AttendanceListPage = async (
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
+      {/* --- Summary Cards --- */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <Card>
+          <CardContent className="p-4">
+            <CardTitle className="text-base">Total Students</CardTitle>
+            <div className="text-2xl font-bold">{totalStudents}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <CardTitle className="text-base">Present Today</CardTitle>
+            <div className="text-2xl font-bold">{presentToday}</div>
+            <div className="text-xs text-gray-500">{attendancePercentage.toFixed(0)}% attendance</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <CardTitle className="text-base">Absent Today</CardTitle>
+            <div className="text-2xl font-bold">{absentToday}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <CardTitle className="text-base">Late Today</CardTitle>
+            <div className="text-2xl font-bold">{lateToday}</div>
+          </CardContent>
+        </Card>
+      </div>
+      {/* --- End Summary Cards --- */}
       <div className="flex items-center justify-between">
         <h1 className="hidden md:block text-lg font-semibold">Attendance Records</h1>
         <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">

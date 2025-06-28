@@ -198,7 +198,7 @@ export async function POST(request: NextRequest) {
         rowData.birthday = dob.toISOString();
 
         // Use classId and gradeId from selection
-        // Create student with required fields
+        // Create student with required fields (excluding password for database)
         const studentData = {
           username: rowData.username,
           name: rowData.name,
@@ -215,7 +215,7 @@ export async function POST(request: NextRequest) {
           gradeId, // Use looked up gradeId
           classId, // Use looked up classId
           email: rowData.email,
-          password: rowData.password
+          password: rowData.password // This will be used for Clerk, not database
         };
 
         console.log(`Processing row ${rowNumber}:`, {

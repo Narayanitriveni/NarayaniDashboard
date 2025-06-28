@@ -274,7 +274,8 @@ export const createTeacher = async (
       await cleanupImageOnFailure(data.img, "teacher creation (Clerk failure)");
     }
     
-    return { success: false, error: true, message: clerkError.message };
+    return { success: false, error: true, message: clerkError.message, details: clerkError.errors || clerkError };
+
   }
 };
 
@@ -400,30 +401,62 @@ export const createStudent = async (
   data: StudentSchema
 ): Promise<CurrentState> => {
   try {
-    const { parentId, ...studentData } = data;
-    const parent = await prisma.parent.findFirst({
-      where: {
-        OR: [{ id: parentId }],
-      },
+    const { parentId, password, email, ...studentData } = data;
+    
+    // Create user in Clerk first
+    const user = await (await clerkClient()).users.createUser({
+      emailAddress: email ? [email] : [],
+      username: studentData.username,
+      password: password || 'password@79264', // Use provided password or default
+      firstName: studentData.name,
+      lastName: studentData.surname,
+      publicMetadata: { role: "student" },
     });
 
-    const newStudent = await prisma.student.create({
-      data: {
-        ...studentData,
-        StudentId: studentData.StudentId || "", // Ensure StudentId is always a string
-        parentId: parent?.id || null, // Ensure parentId is either a valid ID or null
-        birthday: data.birthday || null,
-      },
-    });
+    console.log("Clerk user created successfully:", user.id);
 
-    return { success: true, error: false };
-  } catch (err: any) {
-    console.error("Error creating student:", err);
-    return {
-      success: false,
-      error: true,
-      message: err.message || "An unexpected error occurred",
-      details: [{ message: err.message || "Unknown error" }],
+    try {
+      // Find parent if parentId is provided
+      const parent = await prisma.parent.findFirst({
+        where: {
+          OR: [{ id: parentId }],
+        },
+      });
+
+      // Create student in database with Clerk user ID
+      const newStudent = await prisma.student.create({
+        data: {
+          id: user.id, // Use Clerk user ID
+          ...studentData,
+          StudentId: studentData.StudentId || "", // Ensure StudentId is always a string
+          parentId: parent?.id || null, // Ensure parentId is either a valid ID or null
+          birthday: data.birthday || null,
+        },
+      });
+
+      return { success: true, error: false };
+    } catch (prismaError: any) {
+      console.error("Prisma error:", prismaError);
+
+      // Rollback - Delete user from Clerk if Prisma fails
+      await (await clerkClient()).users.deleteUser(user.id);
+      console.log("Clerk user deleted due to Prisma failure:", user.id);
+
+      return { 
+        success: false, 
+        error: true, 
+        message: prismaError.message,
+        details: [{ message: prismaError.message || "Unknown error" }]
+      };
+    }
+  } catch (clerkError: any) {
+    console.error("Clerk error:", clerkError);
+    
+    return { 
+      success: false, 
+      error: true, 
+      message: clerkError.message,
+      details: clerkError.errors || [{ message: clerkError.message || "Unknown error" }]
     };
   }
 };
@@ -440,33 +473,56 @@ export const updateStudent = async (
     };
   }
   try {
-    const { parentId, ...studentData } = data;
-    const parent = await prisma.parent.findFirst({
-      where: {
-        OR: [{ id: parentId }],
-      },
+    const { parentId, password, email, ...studentData } = data;
+    
+    // Update user in Clerk first
+    await (await clerkClient()).users.updateUser(data.id, {
+      username: studentData.username,
+      firstName: studentData.name,
+      lastName: studentData.surname,
+      ...(password && password !== "" && { password }),
     });
 
-    const updatedStudent = await prisma.student.update({
-      where: {
-        id: data.id,
-      },
-      data: {
-        ...studentData,
-        StudentId: studentData.StudentId || "", // Ensure StudentId is always a string
-        parentId: parent?.id || null, // Ensure parentId is either a valid ID or null
-        birthday: data.birthday || null,
-      },
-    });
+    try {
+      // Find parent if parentId is provided
+      const parent = await prisma.parent.findFirst({
+        where: {
+          OR: [{ id: parentId }],
+        },
+      });
 
-    return { success: true, error: false };
-  } catch (err: any) {
-    console.error("Error updating student:", err);
-    return {
-      success: false,
-      error: true,
-      message: err.message || "An unexpected error occurred",
-      details: [{ message: err.message || "Unknown error" }],
+      // Update student in database
+      const updatedStudent = await prisma.student.update({
+        where: {
+          id: data.id,
+        },
+        data: {
+          ...studentData,
+          StudentId: studentData.StudentId || "", // Ensure StudentId is always a string
+          parentId: parent?.id || null, // Ensure parentId is either a valid ID or null
+          birthday: data.birthday || null,
+        },
+      });
+
+      return { success: true, error: false };
+    } catch (prismaError: any) {
+      console.error("Prisma error in updateStudent:", prismaError);
+      
+      return { 
+        success: false, 
+        error: true, 
+        message: prismaError.message,
+        details: [{ message: prismaError.message || "Unknown error" }]
+      };
+    }
+  } catch (clerkError: any) {
+    console.error("Clerk error in updateStudent:", clerkError);
+    
+    return { 
+      success: false, 
+      error: true, 
+      message: clerkError.message,
+      details: clerkError.errors || [{ message: clerkError.message || "Unknown error" }]
     };
   }
 };
@@ -508,9 +564,13 @@ export const deleteStudent = async (
 
     // revalidatePath("/list/students");
     return { success: true, error: false };
-  } catch (err) {
-    console.log(err);
-    return { success: false, error: true };
+  } catch (error: any) {
+    console.error("Error deleting student:", error);
+    return { 
+      success: false, 
+      error: true,
+      message: error.message || "Failed to delete student"
+    };
   }
 };
 
