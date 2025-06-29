@@ -64,10 +64,24 @@ export const updateSubject = async (
   data: SubjectSchema
 ) => {
   try {
+    // First check if the subject exists
+    const existingSubject = await prisma.subject.findUnique({
+      where: { id: data.id },
+      include: { teachers: true }
+    });
+
+    if (!existingSubject) {
+      return {
+        success: false,
+        error: true,
+        message: "Subject not found",
+        details: [{ message: "Subject with the provided ID does not exist" }],
+      };
+    }
+
+    // Update the subject with new teacher relationships
     await prisma.subject.update({
-      where: {
-        id: data.id,
-      },
+      where: { id: data.id },
       data: {
         name: data.name,
         teachers: {
