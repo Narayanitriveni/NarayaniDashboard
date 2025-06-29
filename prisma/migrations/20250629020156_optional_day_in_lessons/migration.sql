@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Lesson" ALTER COLUMN "day" DROP NOT NULL;

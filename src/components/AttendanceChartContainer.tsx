@@ -23,15 +23,15 @@ const AttendanceChartContainer = async () => {
   });
 
   // Convert days to BS format
-  const daysOfWeek = ["सोमबार", "मंगलबार", "बुधबार", "बिहिबार", "शुक्रबार", "शनिबार"];
+  const daysOfWeek = [ "आइतबार","सोमबार", "मंगलबार", "बुधबार", "बिहिबार", "शुक्रबार", ];
 
   const attendanceMap: { [key: string]: { present: number; absent: number } } = {
+    "आइतबार": { present: 0, absent: 0 },
     "सोमबार": { present: 0, absent: 0 },
     "मंगलबार": { present: 0, absent: 0 },
     "बुधबार": { present: 0, absent: 0 },
     "बिहिबार": { present: 0, absent: 0 },
     "शुक्रबार": { present: 0, absent: 0 },
-    "शनिबार": { present: 0, absent: 0 },
   };
 
   resData.forEach((item) => {
