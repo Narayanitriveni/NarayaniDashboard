@@ -33,6 +33,7 @@ model Student {
   disability  DisabilityType @default(NONE)
   fatherName  String
   motherName  String
+  year        Int            @default(2081) // Academic year (BS)
   attendances Attendance[]
   fees        Fee[]
   results     Result[]

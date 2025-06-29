@@ -85,6 +85,8 @@ export const studentSchema = z.object({
   disability: z.enum(["NONE", "VISION", "HEARING", "MOBILITY", "COGNITIVE", "SPEECH", "MENTAL_HEALTH", "OTHER"]),
   // Add StudentId field
   StudentId: z.string().optional(),
+  // Add year field for academic year
+  year: z.coerce.number().min(2070, { message: "Year must be 2070 or later!" }).max(2090, { message: "Year must be 2090 or earlier!" }).default(2081),
   // parentId field remains optional
   parentId: z.string().optional()
 });

@@ -381,6 +381,23 @@ const StudentForm = ({
             <p className="text-xs text-red-400">{errors.classId.message}</p>
           )}
         </div>
+        <div className="flex flex-col gap-2 w-full md:w-1/4">
+          <label className="text-xs text-gray-500">Academic Year (BS)</label>
+          <select
+            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+            {...register("year")}
+            defaultValue={data?.year || 2081}
+          >
+            {Array.from({ length: 21 }, (_, i) => 2070 + i).map(year => (
+              <option value={year} key={year}>
+                {year}
+              </option>
+            ))}
+          </select>
+          {errors.year?.message && (
+            <p className="text-xs text-red-400">{errors.year.message}</p>
+          )}
+        </div>
       </div>
       <button
         type="submit"

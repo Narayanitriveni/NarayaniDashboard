@@ -20,6 +20,10 @@ export default function UploadStudentsPage() {
   } | null>(null);
   const [classes, setClasses] = useState<{ id: number; name: string; gradeId: number }[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
+  const [selectedYear, setSelectedYear] = useState<number>(2081);
+
+  // Generate academic years (BS) from 2070 to 2090
+  const academicYears = Array.from({ length: 21 }, (_, i) => 2070 + i);
 
   useEffect(() => {
     fetch('/api/upload-students')
@@ -48,9 +52,10 @@ export default function UploadStudentsPage() {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('currentClass', String(selectedClassId));
+    formData.append('academicYear', String(selectedYear));
 
     try {
-      console.log('Starting file upload:', file.name);
+      console.log('Starting file upload:', file.name, 'for year:', selectedYear);
       const response = await fetch('/api/upload-students', {
         method: 'POST',
         body: formData,
@@ -125,6 +130,22 @@ export default function UploadStudentsPage() {
           </div>
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
+              Select Academic Year
+            </label>
+            <select
+              className="block w-full mb-4 border rounded p-2"
+              value={selectedYear}
+              onChange={e => setSelectedYear(Number(e.target.value))}
+            >
+              {academicYears.map(year => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Excel File Template
             </label>
             <div className="text-sm text-gray-600 mb-4">
@@ -150,6 +171,7 @@ export default function UploadStudentsPage() {
                   <li>Password will be generated as: first 4 letters of name + @ + BS year (e.g., adit@2071)</li>
                   <li>Default values will be set for: disability (NONE), blood group (N/A)</li>
                   <li><b>The selected class will be used for all students in this upload.</b></li>
+                  <li><b>The selected academic year ({selectedYear}) will be assigned to all students in this upload.</b></li>
                   <li><b>Date of Birth: You can use Bikram Sambat (BS) format (YYYY-MM-DD) or standard AD date format. BS dates will be automatically converted to AD.</b></li>
                 </ul>
               </div>
@@ -178,6 +200,9 @@ export default function UploadStudentsPage() {
                 file:bg-blue-50 file:text-blue-700
                 hover:file:bg-blue-100"
             />
+            {!selectedClassId && (
+              <p className="text-xs text-red-500 mt-1">Please select a class first</p>
+            )}
           </div>
 
           {isUploading && (

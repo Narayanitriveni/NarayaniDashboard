@@ -115,6 +115,16 @@ export async function POST(request: NextRequest) {
     }
     const gradeId = classObj.gradeId;
 
+    // Get academic year from form data
+    const academicYearStr = formData.get('academicYear');
+    if (!academicYearStr) {
+      return NextResponse.json({ error: 'No academic year selected' }, { status: 400 });
+    }
+    const academicYear = parseInt(academicYearStr as string);
+    if (isNaN(academicYear) || academicYear < 2070 || academicYear > 2090) {
+      return NextResponse.json({ error: 'Invalid academic year selected' }, { status: 400 });
+    }
+
     // Process each row
     for (let rowNumber = 2; rowNumber <= worksheet.rowCount; rowNumber++) {
       const row = worksheet.getRow(rowNumber);
@@ -214,6 +224,7 @@ export async function POST(request: NextRequest) {
           StudentId: rowData.studentId, // Using Student ID from Excel
           gradeId, // Use looked up gradeId
           classId, // Use looked up classId
+          year: academicYear, // Use selected academic year
           email: rowData.email,
           password: rowData.password // This will be used for Clerk, not database
         };
