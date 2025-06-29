@@ -22,8 +22,8 @@ const AttendanceChartContainer = async () => {
     },
   });
 
-  // Convert days to BS format
-  const daysOfWeek = [ "आइतबार","सोमबार", "मंगलबार", "बुधबार", "बिहिबार", "शुक्रबार", ];
+  // Convert days to BS format - including all 6 working days
+  const daysOfWeek = ["आइतबार", "सोमबार", "मंगलबार", "बुधबार", "बिहिबार", "शुक्रबार"];
 
   const attendanceMap: { [key: string]: { present: number; absent: number } } = {
     "आइतबार": { present: 0, absent: 0 },
@@ -38,9 +38,13 @@ const AttendanceChartContainer = async () => {
     const itemDate = new Date(item.date);
     const dayOfWeek = itemDate.getDay();
     
-    // Skip Sunday (dayOfWeek === 0)
-    if (dayOfWeek >= 1 && dayOfWeek <= 6) {
-      const dayName = daysOfWeek[dayOfWeek - 1];
+    // Map Sunday (0) to index 0, Monday (1) to index 1, etc.
+    // This gives us Sunday=0, Monday=1, ..., Saturday=6
+    const dayIndex = dayOfWeek;
+    
+    // Only process weekdays (Sunday to Friday)
+    if (dayIndex >= 0 && dayIndex < 6) {
+      const dayName = daysOfWeek[dayIndex];
 
       if (item.status === "PRESENT") {
         attendanceMap[dayName].present += 1;
