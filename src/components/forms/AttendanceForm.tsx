@@ -97,6 +97,7 @@ const AttendanceForm = ({
   const [processedStudents, setProcessedStudents] = useState<string[]>([]);
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [errorState, setErrorState] = useState<{ message: string; details: any } | null>(null);
+  const [skippedStudents, setSkippedStudents] = useState<string[]>([]);
 
   const {
     handleSubmit,
@@ -117,8 +118,10 @@ const AttendanceForm = ({
   const classes = relatedData?.classes || [];
   const lessons = relatedData?.lessons || [];
   const students = (relatedData?.students || []).filter(
-    (student: any) => !processedStudents.includes(student.id) && 
-    (!currentClassId || student.classId === parseInt(currentClassId))
+    (student: any) =>
+      !processedStudents.includes(student.id) &&
+      !skippedStudents.includes(student.id) &&
+      (!currentClassId || student.classId === parseInt(currentClassId))
   );
 
   const handleSwipe = async (direction: "left" | "right", studentId: string) => {
@@ -225,11 +228,21 @@ const AttendanceForm = ({
         <div className="mt-4 relative min-h-[300px]">
           <AnimatePresence>
             {students.length > 0 ? (
-              <StudentCard
-                key={students[0].id}
-                student={students[0]}
-                onSwipe={handleSwipe}
-              />
+              <>
+                <StudentCard
+                  key={students[0].id}
+                  student={students[0]}
+                  onSwipe={handleSwipe}
+                />
+                <div className="flex justify-center mt-4">
+                  <button
+                    className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 text-sm"
+                    onClick={() => setSkippedStudents(prev => [...prev, students[0].id])}
+                  >
+                    Skip
+                  </button>
+                </div>
+              </>
             ) : (
               <div className="text-center text-gray-500 py-8">
                 {currentClassId ? "No more students to mark attendance for" : "Please select a class"}
