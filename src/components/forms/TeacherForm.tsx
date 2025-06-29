@@ -33,6 +33,8 @@ const TeacherForm = ({
   setOpen: Dispatch<SetStateAction<boolean>>;
   relatedData?: any;
 }) => {
+  console.log("TeacherForm props:", { type, data, relatedData });
+  
   const {
     register,
     handleSubmit,
@@ -61,6 +63,27 @@ const TeacherForm = ({
       }
     }
   }, [data]);
+
+  // Set existing image when updating
+  useEffect(() => {
+    if (type === "update" && data?.img) {
+      console.log("Setting existing image:", data.img);
+      setImg({ secure_url: data.img });
+    }
+  }, [data, type]);
+
+  // Set existing subjects when updating
+  useEffect(() => {
+    if (type === "update" && data?.subjects) {
+      console.log("Setting subjects:", data.subjects);
+      // Convert subjects array to array of IDs
+      const subjectIds = data.subjects.map((subject: any) => 
+        typeof subject === 'object' ? subject.id.toString() : subject.toString()
+      );
+      console.log("Subject IDs:", subjectIds);
+      setValue('subjects', subjectIds);
+    }
+  }, [data, type, setValue]);
 
   // Handle BS date change
   const handleBSDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -98,15 +121,28 @@ const TeacherForm = ({
       setLoading(true);
       setShowError(false);
       
-      // Ensure email is in correct format for Clerk
-      const emailData = {
+      console.log("Form data:", formData);
+      console.log("Teacher data:", data);
+      console.log("Type:", type);
+      
+      // Prepare the data for submission
+      const submitData = {
         ...formData,
-        email_address: formData.email, // Add email_address field required by Clerk
-        img: img?.secure_url
+        // Include the ID for updates
+        ...(type === "update" && data?.id && { id: data.id }),
+        // Handle image
+        img: img?.secure_url || data?.img,
+        // Ensure subjects is properly formatted
+        subjects: formData.subjects || []
       };
       
-      formAction(emailData);
+      console.log("Submit data:", submitData);
+      
+      formAction(submitData);
     } catch (error: any) {
+      console.error("Form submission error:", error);
+      setLoading(false);
+      
       // Handle Clerk errors
       if (error.errors?.[0]) {
         const clerkError = error.errors[0];
@@ -118,9 +154,9 @@ const TeacherForm = ({
         } else {
           toast.error(clerkError.longMessage || 'Something went wrong');
         }
+      } else {
+        toast.error('An unexpected error occurred');
       }
-    } finally {
-      setLoading(false);
     }
   });
 

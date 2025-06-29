@@ -284,23 +284,49 @@ export const updateTeacher = async (
   currentState: CurrentState,
   data: TeacherSchema
 ) => {
+  console.log("updateTeacher called with data:", data);
+  
   if (!data.id) {
-    return { success: false, error: true };
+    console.error("No ID provided for teacher update");
+    return { success: false, error: true, message: "Teacher ID is required for update" };
   }
+  
   try {
+    console.log("Updating teacher in Clerk with ID:", data.id);
+    
+    // Update user in Clerk first
     const user = await (await clerkClient()).users.updateUser(data.id, {
       username: data.username,
-      ...(data.password !== "" && { password: data.password }),
+      ...(data.password && data.password !== "" && { password: data.password }),
       firstName: data.name,
       lastName: data.surname,
     });
+    
+    console.log("Teacher updated in Clerk:", user.id);
+    
+    // Get current teacher data for image comparison
     const currentTeacher = await prisma.teacher.findUnique({
       where: { id: data.id },
       select: { img: true }
     });
-    console.log("teacher updated in clerk ",user.id)
+    
+    console.log("Current teacher data:", currentTeacher);
     
     try {
+      console.log("Updating teacher in database with data:", {
+        username: data.username,
+        name: data.name,
+        surname: data.surname,
+        email: data.email || null,
+        phone: data.phone || null,
+        address: data.address,
+        bloodType: data.bloodType,
+        sex: data.sex,
+        birthday: data.birthday,
+        subjects: data.subjects
+      });
+      
+      // Update teacher in database
       await prisma.teacher.update({
         where: {
           id: data.id,
@@ -323,7 +349,9 @@ export const updateTeacher = async (
           },
         },
       });
-      // revalidatePath("/list/teachers");
+      
+      console.log("Teacher updated successfully in database");
+      revalidatePath("/list/teachers");
       return { success: true, error: false };
     } catch (prismaError: any) {
       console.error("Prisma error in updateTeacher:", prismaError);
@@ -333,10 +361,32 @@ export const updateTeacher = async (
         await cleanupImageOnFailure(data.img, "teacher update");
       }
       
-      return { success: false, error: true, message: prismaError.message };
+      // Handle specific Prisma errors
+      if (prismaError.code === 'P2002') {
+        const field = prismaError.meta?.target?.[0];
+        let message = "A record with this information already exists.";
+        if (field === 'username') {
+          message = "This username is already taken. Please choose a different username.";
+        } else if (field === 'email') {
+          message = "This email address is already registered. Please use a different email.";
+        }
+        return { 
+          success: false, 
+          error: true, 
+          message,
+          details: [{ code: 'P2002', message: prismaError.message, meta: prismaError.meta }]
+        };
+      }
+      
+      return { 
+        success: false, 
+        error: true, 
+        message: prismaError.message || "Database update failed",
+        details: [{ message: prismaError.message || "Unknown database error" }]
+      };
     }
-  } catch (err) {
-    console.log(err);
+  } catch (clerkError: any) {
+    console.error("Clerk error in updateTeacher:", clerkError);
     
     // Clean up new image from Cloudinary if Clerk update fails and a new image was uploaded
     if (data.img) {
@@ -350,7 +400,23 @@ export const updateTeacher = async (
       }
     }
     
-    return { success: false, error: true };
+    // Handle specific Clerk errors
+    if (clerkError.errors?.[0]) {
+      const error = clerkError.errors[0];
+      return { 
+        success: false, 
+        error: true, 
+        message: error.longMessage || error.message || "Authentication update failed",
+        details: clerkError.errors
+      };
+    }
+    
+    return { 
+      success: false, 
+      error: true, 
+      message: clerkError.message || "Authentication update failed",
+      details: [{ message: clerkError.message || "Unknown authentication error" }]
+    };
   }
 };
 
