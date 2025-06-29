@@ -193,6 +193,13 @@ const StudentForm = ({
           register={register}
           error={errors?.IEMISCODE}
         />
+        <InputField
+          label="Student ID"
+          name="StudentId"
+          defaultValue={data?.StudentId}
+          register={register}
+          error={errors?.StudentId}
+        />
       </div>
       <span className="text-xs text-gray-400 font-medium">
         Personal Information
