@@ -25,21 +25,33 @@ model Student {
   sex         UserSex
   createdAt   DateTime       @default(now())
   parentId    String?
-  classId     Int
-  gradeId     Int
   birthday    DateTime
   StudentId   String         @unique
   IEMISCODE   Int
   disability  DisabilityType @default(NONE)
   fatherName  String
   motherName  String
-  year        Int            @default(2081) // Academic year (BS)
   attendances Attendance[]
   fees        Fee[]
   results     Result[]
-  class       Class          @relation(fields: [classId], references: [id])
-  grade       Grade          @relation(fields: [gradeId], references: [id])
   parent      Parent?        @relation(fields: [parentId], references: [id])
+  enrollments Enrollment[]
+}
+
+model Enrollment {
+  id        String   @id @default(cuid())
+  studentId String
+  classId   Int
+  gradeId   Int
+  year      Int       // Academic year (BS)
+  joinedAt  DateTime  @default(now())
+  leftAt    DateTime?
+
+  student   Student   @relation(fields: [studentId], references: [id])
+  class     Class     @relation(fields: [classId], references: [id])
+  grade     Grade     @relation(fields: [gradeId], references: [id])
+
+  @@unique([studentId, year])
 }
 
 model Teacher {
@@ -79,7 +91,7 @@ model Grade {
   id       Int       @id @default(autoincrement())
   level    Int       @unique
   classes  Class[]
-  students Student[]
+  students Enrollment[]
 }
 
 model Class {
@@ -94,7 +106,7 @@ model Class {
   supervisor    Teacher?       @relation(fields: [supervisorId], references: [id])
   events        Event[]
   lessons       Lesson[]
-  students      Student[]
+  students      Enrollment[]
   exams         Exam[]
 }
 

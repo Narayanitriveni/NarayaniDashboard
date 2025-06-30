@@ -225,7 +225,7 @@ export default function UploadStudentsPage() {
                     <li>Processed Rows: {uploadResult.stats.processedRows}</li>
                     <li>Successful Uploads: {uploadResult.stats.successCount}</li>
                     <li>Failed Uploads: {uploadResult.stats.errorCount}</li>
-                    <li>Skipped Rows: {uploadResult.stats.skippedRows}</li>
+                    <li>Skipped Rows: {uploadResult.stats.skippedRows} (already enrolled for this year)</li>
                   </ul>
                 </div>
               )}

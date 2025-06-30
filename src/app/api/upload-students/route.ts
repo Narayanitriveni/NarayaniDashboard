@@ -238,17 +238,70 @@ export async function POST(request: NextRequest) {
           studentId: studentData.StudentId
         });
 
-        const result = await createStudent({ success: false, error: false }, studentData);
-        
-        if (result.success) {
-          results.success++;
-          console.log(`Successfully created student: ${studentData.username}`);
-        } else {
-          const errorMsg = `Row ${rowNumber}: ${result.message || 'Failed to create student'}`;
-          console.error(errorMsg);
-          results.errors.push(errorMsg);
+        // Check if student already exists by StudentId
+        let student = await prisma.student.findUnique({
+          where: { StudentId: rowData.studentId }
+        });
+
+        let createdNewStudent = false;
+        let createdNewEnrollment = false;
+
+        if (!student) {
+          // Create new student
+          student = await prisma.student.create({
+            data: {
+              username: rowData.username,
+              name: rowData.name,
+              surname: rowData.surname,
+              fatherName: rowData.fatherName,
+              motherName: rowData.motherName,
+              sex: rowData.gender.toUpperCase(),
+              birthday: rowData.birthday,
+              bloodType: rowData.bloodType,
+              disability: rowData.disability,
+              address,
+              IEMISCODE: 48073003,
+              StudentId: rowData.studentId,
+              email: rowData.email,
+              // phone: ... // add if available
+            }
+          });
+          createdNewStudent = true;
         }
-        results.processedRows++;
+
+        // Check if enrollment for this year already exists
+        const existingEnrollment = await prisma.enrollment.findUnique({
+          where: {
+            studentId_year: {
+              studentId: student.id,
+              year: academicYear
+            }
+          }
+        });
+
+        if (!existingEnrollment) {
+          // Create new enrollment for this year/class
+          await prisma.enrollment.create({
+            data: {
+              studentId: student.id,
+              classId,
+              gradeId,
+              year: academicYear
+            }
+          });
+          createdNewEnrollment = true;
+        }
+
+        if (createdNewStudent && createdNewEnrollment) {
+          results.success++;
+          results.processedRows++;
+        } else if (!createdNewStudent && createdNewEnrollment) {
+          results.success++;
+          results.processedRows++;
+        } else if (!createdNewEnrollment) {
+          results.skippedRows++;
+          results.errors.push(`Row ${rowNumber}: Student already enrolled for year ${academicYear}`);
+        }
       } catch (error: any) {
         const errorMsg = `Row ${rowNumber}: ${error.message || 'Error processing row'}`;
         console.error(errorMsg);
