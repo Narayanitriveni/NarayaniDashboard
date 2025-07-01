@@ -2619,3 +2619,21 @@ export const removeStudentFromClass = async (
     return { success: false, error: true, message: err.message || "Failed to remove student" };
   }
 };
+
+export const transferSelectedStudents = async (enrollmentIds: string[], destinationClassId: number) => {
+  try {
+    // Get the destination class and grade
+    const destClass = await prisma.class.findUnique({ where: { id: destinationClassId }, include: { grade: true } });
+    if (!destClass) return { success: false, error: true, message: "Destination class not found" };
+
+    // Update the classId and gradeId for the selected enrollments
+    await prisma.enrollment.updateMany({
+      where: { id: { in: enrollmentIds } },
+      data: { classId: destClass.id, gradeId: destClass.gradeId }
+    });
+
+    return { success: true, error: false };
+  } catch (err: any) {
+    return { success: false, error: true, message: err?.message || "Failed to transfer students" };
+  }
+};

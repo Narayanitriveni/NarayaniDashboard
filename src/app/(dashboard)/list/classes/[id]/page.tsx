@@ -13,6 +13,7 @@ import TableSearch from "@/components/TableSearch";
 import { removeStudentFromClass } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import StudentDeleteButton from "@/components/StudentDeleteButton";
+import StudentMultiTransfer from '@/components/StudentMultiTransfer';
 
 const ClassDetailPage = async (props: { params: { id: string }, searchParams?: { year?: string } }) => {
   const { id } = props.params;
@@ -46,6 +47,12 @@ const ClassDetailPage = async (props: { params: { id: string }, searchParams?: {
   if (!classData) {
     return <div className="m-4 p-4 bg-red-100 rounded-md">Class not found</div>;
   }
+
+  // Fetch all classes except the current one
+  const allClasses = await prisma.class.findMany({
+    where: { id: { not: classId } },
+    select: { id: true, name: true },
+  });
 
   const currentYear = props.searchParams?.year || "";
 
@@ -94,6 +101,7 @@ const ClassDetailPage = async (props: { params: { id: string }, searchParams?: {
 
   // Student list table configuration
   const studentColumns = [
+    { header: '', accessor: 'select' },
     {
       header: "Student",
       accessor: "name",
@@ -360,6 +368,13 @@ const ClassDetailPage = async (props: { params: { id: string }, searchParams?: {
             )}
           </div>
         </div>
+        {role === "admin" && (
+          <StudentMultiTransfer
+            enrollments={enrollments}
+            classes={allClasses}
+            currentClassId={classData.id}
+          />
+        )}
         {enrollments.length > 0 ? (
           <Table 
             columns={studentColumns} 

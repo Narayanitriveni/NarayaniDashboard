@@ -7,19 +7,20 @@ async function main() {
   // await prisma.student.deleteMany({});
   
   // await prisma.assignment.deleteMany({})
-  // await prisma.attendance.deleteMany({})
+  await prisma.attendance.deleteMany({})
   // await prisma.teacherAttendance.deleteMany({})
 
   // await prisma.lesson.deleteMany({})
   // await prisma.teacher.deleteMany({});
-  // await prisma.payment.deleteMany({});
+  await prisma.payment.deleteMany({});
   await prisma.fee.deleteMany({});
+
   // await prisma.result.deleteMany({});
   // await prisma.parent.deleteMany({});
-  // await prisma.enrollment.deleteMany({});
+  await prisma.enrollment.deleteMany({});
   
 
-//   await prisma.student.deleteMany({});
+  await prisma.student.deleteMany({});
 //   console.log("teacher Deleted, Student Deleted")
   
 //   await prisma.class.deleteMany({});
