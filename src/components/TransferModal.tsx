@@ -81,13 +81,26 @@ const TransferModal = ({ classId, onClose, currentClassName }: TransferModalProp
               defaultValue=""
             >
               <option value="" disabled>-- Select a class --</option>
-              {nextClasses.map((c) => (
-                <option key={c.id} value={c.id} disabled={c.capacity - c._count.students <= 0}>
-                  {c.name} ({c.capacity - c._count.students} spots available)
-                </option>
-              ))}
+              {nextClasses.map((c) => {
+                const spots = c.capacity - c._count.students;
+                return (
+                  <option
+                    key={c.id}
+                    value={c.id}
+                    disabled={spots <= 0}
+                  >
+                    {c.name} ({spots} spots available{spots <= 0 ? " - FULL" : ""})
+                  </option>
+                );
+              })}
             </select>
           </div>
+        )}
+
+        {!isLoading && !error && nextClasses.every(c => c.capacity - c._count.students <= 0) && (
+          <p className="text-red-500 text-sm mt-2">
+            All destination classes are full or over capacity. Please increase class capacity or remove students.
+          </p>
         )}
 
         <div className="flex justify-end gap-4">

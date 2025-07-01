@@ -2475,8 +2475,9 @@ export const getNextGradeClasses = async (currentClassId: number) => {
     }
 
     // Find the next grade
-    const nextGrade = await prisma.grade.findFirst({
-      where: { level: currentClass.grade.level + 1 }
+    const nextGrade = await prisma.grade.findMany({
+      where: { level: { gt: currentClass.grade.level } },
+      orderBy: { level: 'asc' }
     });
 
     if (!nextGrade) {
