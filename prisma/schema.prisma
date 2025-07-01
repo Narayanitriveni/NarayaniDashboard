@@ -47,7 +47,7 @@ model Enrollment {
   joinedAt  DateTime  @default(now())
   leftAt    DateTime?
 
-  student   Student   @relation(fields: [studentId], references: [id])
+  student   Student   @relation(fields: [studentId], references: [StudentId])
   class     Class     @relation(fields: [classId], references: [id])
   grade     Grade     @relation(fields: [gradeId], references: [id])
 

@@ -273,7 +273,7 @@ export async function POST(request: NextRequest) {
         const existingEnrollment = await prisma.enrollment.findUnique({
           where: {
             studentId_year: {
-              studentId: student.id,
+              studentId: student.StudentId,
               year: academicYear
             }
           }
@@ -283,7 +283,7 @@ export async function POST(request: NextRequest) {
           // Create new enrollment for this year/class
           await prisma.enrollment.create({
             data: {
-              studentId: student.id,
+              studentId: student.StudentId,
               classId,
               gradeId,
               year: academicYear

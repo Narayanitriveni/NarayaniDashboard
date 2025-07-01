@@ -154,7 +154,9 @@ const ExamListPage = async (
       query.class = {
         students: {
           some: {
-            parentId: currentUserId!,
+            student: {
+              parentId: currentUserId!,
+            },
           },
         },
       };

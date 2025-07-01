@@ -20,7 +20,11 @@ export async function POST(req: Request) {
       data.students = await prisma.student.findMany({
         include: {
           parent: true,
-          class: true,
+          enrollments: {
+            include: {
+              class: true,
+            },
+          },
         },
       });
     }

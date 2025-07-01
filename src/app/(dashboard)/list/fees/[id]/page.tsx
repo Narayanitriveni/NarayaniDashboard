@@ -27,7 +27,11 @@ const FeeDetailsPage = async (
     include: {
       student: {
         include: {
-          class: true,
+          enrollments: {
+            include: {
+              class: true,
+            },
+          },
         },
       },
       payments: {
@@ -38,9 +42,15 @@ const FeeDetailsPage = async (
     },
   });
 
-  if (!fee) {
+  if (!fee || !fee.student) {
     return notFound();
   }
+
+  // Get the current class from enrollments
+  const currentEnrollment = fee.student.enrollments.find(enrollment => 
+    enrollment.class && enrollment.leftAt === null
+  );
+  const currentClass = currentEnrollment?.class;
 
   const getStatusColor = (status: FeeStatus) => {
     switch (status) {
@@ -107,8 +117,8 @@ const FeeDetailsPage = async (
           <h2 className="text-lg font-semibold mb-4">Student Information</h2>
           <div className="space-y-2">
             <p><span className="text-gray-500">Name:</span> {fee.student.name} {fee.student.surname}</p>
-            <p><span className="text-gray-500">Class:</span> {fee.student.class.name}</p>
-            <p><span className="text-gray-500">Roll No:</span> {fee.student.StudentId}</p>
+            <p><span className="text-gray-500">Class:</span> {currentClass?.name || "N/A"}</p>
+            <p><span className="text-gray-500">Roll No:</span> {fee.student.StudentId || "N/A"}</p>
             <p><span className="text-gray-500">Email:</span> {fee.student.email || "N/A"}</p>
             <p><span className="text-gray-500">Phone:</span> {fee.student.phone || "N/A"}</p>
           </div>

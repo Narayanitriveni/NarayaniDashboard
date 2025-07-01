@@ -13,7 +13,12 @@ import Link from "next/link";
 import { ADToBS } from "bikram-sambat-js";
 
 type FeeWithRelations = Fee & {
-  student: Student & { class: Class };
+  student: Student & { 
+    enrollments: {
+      class: Class;
+      leftAt: Date | null;
+    }[];
+  };
 };
 
 const sortOptions = [
@@ -100,6 +105,10 @@ const FeesListPage = async (
       'कार्तिक', 'मंसिर', 'पौष', 'माघ', 'फाल्गुन', 'चैत्र'
     ];
 
+    // Get current class from enrollments (where leftAt is null - still in class)
+    const currentEnrollment = fee.student.enrollments.find(enrollment => enrollment.leftAt === null);
+    const currentClass = currentEnrollment?.class;
+
     return (
       <tr
         key={fee.id}
@@ -107,11 +116,11 @@ const FeesListPage = async (
       >
         <td className="p-4">{`${fee.student.name} ${fee.student.surname}`}</td>
         <td>
-          {(() => {
-            const className = fee.student.class.name.replace('Class ', '');
+          {currentClass ? (() => {
+            const className = currentClass.name.replace('Class ', '');
             const [grade, section] = className.split('-');
             return section ? `${grade}${section}` : grade;
-          })()}
+          })() : "N/A"}
         </td>
         <td>{Number(fee.totalAmount).toLocaleString()}</td>
         <td>{Number(fee.totalAmount - fee.paidAmount).toLocaleString()}</td>
@@ -151,7 +160,14 @@ const FeesListPage = async (
       include: {
         student: {
           include: {
-            class: true
+            enrollments: {
+              include: {
+                class: true
+              },
+              where: {
+                leftAt: null  // Students still in the class
+              }
+            }
           }
         }
       },

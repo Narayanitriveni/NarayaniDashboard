@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import prisma from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { format } from "date-fns";
-import { FeeStatus } from "@prisma/client";
+import { FeeStatus, Enrollment } from "@prisma/client";
 
 // Add this helper function at the top level
 function hasTimeConflict(event1: { startTime: string; endTime: string }, event2: { startTime: string; endTime: string }) {
@@ -26,25 +26,29 @@ const StudentPage = async () => {
   const student = await prisma.student.findUnique({
     where: { id: userId! },
     include: {
-      class: {
+      enrollments: {
         include: {
-          grade: true,
-          lessons: {
+          class: {
             include: {
-              subject: true,
-              teacher: true
+              grade: true,
+              lessons: {
+                include: {
+                  subject: true,
+                  teacher: true
+                }
+              },
+              events: true,
+              exams: {
+                include: {
+                  subject: true,
+                  class: true
+                },
+                orderBy: {
+                  startTime: 'desc'
+                },
+                take: 3
+              }
             }
-          },
-          events: true,
-          exams: {
-            include: {
-              subject: true,
-              class: true
-            },
-            orderBy: {
-              startTime: 'desc'
-            },
-            take: 3
           }
         }
       },
@@ -94,23 +98,15 @@ const StudentPage = async () => {
     return <div>Student not found</div>;
   }
 
-  // Add more detailed debug logging
-  console.log('Student classId:', student.classId, typeof student.classId);
-  console.log('Class:', student.class);
-  console.log('All Exams:', student.class.exams);
-  console.log('Upcoming Exams:', student.class.exams.map(e => ({
-    id: e.id,
-    title: e.title,
-    classId: e.classId,
-    startTime: e.startTime,
-    subject: e.subject.name
-  })));
+  // Get the active enrollment (where leftAt is null)
+  const activeEnrollment = student.enrollments.find((enr: Enrollment) => enr.leftAt === null);
+  const studentClass = activeEnrollment?.class;
 
   // Get all events related to the student
   const studentEvents = await prisma.event.findMany({
     where: {
       OR: [
-        { classId: student.classId }, // Class-specific events
+        { classId: studentClass?.id }, // Class-specific events
         { classId: null } // General events
       ],
       startTime: {
@@ -126,7 +122,7 @@ const StudentPage = async () => {
   });
 
   // Transform lessons first
-  const lessonEvents = student.class.lessons.map(lesson => ({
+  const lessonEvents = studentClass?.lessons.map((lesson: any) => ({
     id: `lesson-${lesson.id}`,
     title: `${lesson.subject.name} - ${lesson.name}`,
     description: `Taught by ${lesson.teacher.name} ${lesson.teacher.surname}`,
@@ -135,15 +131,15 @@ const StudentPage = async () => {
     endTime: format(new Date(lesson.endTime), 'HH:mm'),
     duration: Math.round((new Date(lesson.endTime).getTime() - new Date(lesson.startTime).getTime()) / (1000 * 60)),
     category: 'class',
-    location: `Class ${student.class.name}`,
+    location: `Class ${studentClass.name}`,
     color: '#e0f2fe',
     priority: 'high' as const,
     type: 'lesson' as const
-  }));
+  })) || [];
 
   // Transform events and check for conflicts
   const eventEvents = studentEvents.map(event => {
-    const isClassEvent = event.classId === student.classId;
+    const isClassEvent = event.classId === studentClass?.id;
     const eventData = {
       id: `event-${event.id}`,
       title: event.title,
@@ -153,7 +149,7 @@ const StudentPage = async () => {
       endTime: format(new Date(event.endTime), 'HH:mm'),
       duration: Math.round((new Date(event.endTime).getTime() - new Date(event.startTime).getTime()) / (1000 * 60)),
       category: isClassEvent ? 'class-event' : 'general-event',
-      location: isClassEvent ? `Class ${student.class.name}` : 'School-wide',
+      location: isClassEvent ? `Class ${studentClass?.name}` : 'School-wide',
       color: isClassEvent ? '#fef3c7' : '#d1fae5',
       priority: isClassEvent ? 'medium' as const : 'high' as const,
       type: 'event' as const
@@ -206,11 +202,11 @@ const StudentPage = async () => {
             </div>
             <div>
               <p className="text-sm text-gray-500">Class</p>
-              <p className="font-medium">{student.class.name}</p>
+              <p className="font-medium">{studentClass ? studentClass.name : "N/A"}</p>
             </div>
             <div>
               <p className="text-sm text-gray-500">Grade</p>
-              <p className="font-medium">Grade {student.class.grade.level}</p>
+              <p className="font-medium">{studentClass ? `Grade ${studentClass.grade.level}` : "N/A"}</p>
             </div>
             <div>
               <p className="text-sm text-gray-500">Parent</p>
@@ -260,7 +256,7 @@ const StudentPage = async () => {
                 </tr>
               </thead>
               <tbody>
-                {student.results.map((result) => (
+                {student.results?.map((result: any) => (
                   <tr key={result.id} className="border-b">
                     <td className="py-2">
                       {result.exam?.subject.name || result.assignment?.lesson.subject.name}
@@ -283,7 +279,7 @@ const StudentPage = async () => {
         <div className="bg-white p-4 rounded-md">
           <h1 className="text-xl font-semibold mb-4"> Fees</h1>
           <div className="space-y-4">
-            {student.fees.map((fee) => (
+            {student.fees?.map((fee: any) => (
               <div key={fee.id} className="border-b pb-4">
                 <div className="flex justify-between items-center">
                   <div>
@@ -305,7 +301,7 @@ const StudentPage = async () => {
         <div className="bg-white p-4 rounded-md">
           <h1 className="text-xl font-semibold mb-4">Recent Attendance</h1>
           <div className="space-y-4">
-            {student.attendances.map((attendance) => (
+            {student.attendances?.map((attendance: any) => (
               <div key={attendance.id} className="border-b pb-4">
                 <div className="flex justify-between items-center">
                   <div>
@@ -336,15 +332,13 @@ const StudentPage = async () => {
         <div className="bg-white p-4 rounded-md mt-4">
           <h1 className="text-xl font-semibold mb-4">Upcoming Exams</h1>
           {(() => {
-            const upcomingExams = student.class.exams
-            // Filter only upcoming exams (future startTime)
-            .filter(exam => new Date(exam.startTime) > new Date())
-
-              .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+            const upcomingExams = studentClass?.exams
+              ?.filter((exam: any) => new Date(exam.startTime) > new Date())
+              .sort((a: any, b: any) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()) || [];
 
             return upcomingExams.length > 0 ? (
               <ul className="space-y-3">
-                {upcomingExams.map((exam) => (
+                {upcomingExams.map((exam: any) => (
                   <li key={exam.id} className="border-b pb-2">
                     <div className="font-medium">{exam.title}</div>
                     <div className="text-sm text-gray-500">

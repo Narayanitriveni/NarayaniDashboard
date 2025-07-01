@@ -2044,9 +2044,14 @@ export const getStudentReportData = async (studentId: string) => {
         name: true,
         surname: true,
         StudentId: true,
-        class: {
+        enrollments: {
+          where: { leftAt: null },
           select: {
-            name: true,
+            class: {
+              select: {
+                name: true,
+              },
+            },
           },
         },
         results: {
@@ -2108,15 +2113,15 @@ export const getStudentIdCardData = async (studentId: string) => {
         phone: true,
         img: true,
         address: true,
-        class: {
+        enrollments: {
+          where: { leftAt: null },
           select: {
-            name: true,
-          },
-        },
-        grade: {
-          select: {
-            level: true,
-          },
+            class: {
+              select: {
+                name: true,
+              },
+            },
+          }
         },
         parent: {
           select: {
@@ -2156,9 +2161,10 @@ export const getFeeReceiptData = async (feeId: string) => {
       include: {
         student: {
           include: {
-            class: {
-              select: {
-                name: true,
+            enrollments: {
+              where: { leftAt: null },
+              include: {
+                class: true,
               },
             },
           },
@@ -2407,28 +2413,42 @@ export const transferStudentsToNextClass = async (
       return { success: false, error: true, message: "Selected next class not found" };
     }
 
-    // Check if next class has enough capacity
-    const availableCapacity = nextClass.capacity - nextClass._count.students;
-    const currentStudents = await prisma.student.count({
-      where: { classId: data.classId }
+    // Find all active enrollments for the current class
+    const currentEnrollments = await prisma.enrollment.findMany({
+      where: { classId: data.classId, leftAt: null }
     });
 
-    if (availableCapacity < currentStudents) {
+    // Check if next class has enough capacity
+    const availableCapacity = nextClass.capacity - nextClass._count.students;
+    if (availableCapacity < currentEnrollments.length) {
       return { 
         success: false, 
         error: true, 
-        message: `Selected class has ${availableCapacity} spots available, but there are ${currentStudents} students to transfer` 
+        message: `Selected class has ${availableCapacity} spots available, but there are ${currentEnrollments.length} students to transfer` 
       };
     }
 
-    // Transfer all students to the next class
-    await prisma.student.updateMany({
-      where: { classId: data.classId },
-      data: { 
-        classId: nextClass.id,
-        gradeId: nextGrade.id
-      }
+    // Mark current enrollments as left
+    await prisma.enrollment.updateMany({
+      where: { classId: data.classId, leftAt: null },
+      data: { leftAt: new Date() }
     });
+
+    // Create new enrollments for the next class
+    await prisma.$transaction(
+      currentEnrollments.map(enrollment =>
+        prisma.enrollment.create({
+          data: {
+            studentId: enrollment.studentId,
+            classId: nextClass.id,
+            gradeId: nextGrade.id,
+            year: enrollment.year + 1,
+            joinedAt: new Date(),
+            leftAt: null
+          }
+        })
+      )
+    );
 
     return { success: true, error: false };
   } catch (err) {

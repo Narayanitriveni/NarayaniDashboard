@@ -37,7 +37,6 @@ const StudentFeesPage = async (
           dueDate: "desc",
         },
       },
-      class: true,
     },
   });
 

@@ -7,13 +7,13 @@ import YearFilter from "@/components/YearFilter";
 
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
-import { Class, Prisma, Student } from "@prisma/client";
+import { Class, Prisma, Student, Enrollment } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
 
 import { auth } from "@clerk/nextjs/server";
 
-type StudentList = Student & { class: Class };
+type EnrollmentList = Enrollment & { student: Student, class: Class };
 
 const sortOptions = [
   { label: "Name (A-Z)", value: "name", direction: "asc" as const },
@@ -25,9 +25,6 @@ const sortOptions = [
   { label: "Year (Low-High)", value: "year", direction: "asc" as const },
   { label: "Year (High-Low)", value: "year", direction: "desc" as const },
 ];
-
-// Generate academic years for filter
-const academicYears = Array.from({ length: 21 }, (_, i) => 2070 + i);
 
 const StudentListPage = async (
   props: {
@@ -78,41 +75,38 @@ const StudentListPage = async (
       : []),
   ];
 
-  const renderRow = (item: StudentList) => (
+  const renderRow = (item: EnrollmentList) => (
     <tr
       key={item.id}
       className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
     >
       <td className="flex items-center gap-4 p-4">
         <Image
-          src={item.img || "/noAvatar.png"}
+          src={item.student.img || "/noAvatar.png"}
           alt=""
           width={40}
           height={40}
           className="md:hidden xl:block w-10 h-10 rounded-full object-cover"
         />
         <div className="flex flex-col">
-          <h3 className="font-semibold">{item.name}</h3>
+          <h3 className="font-semibold">{item.student.name}</h3>
           <p className="text-xs text-gray-500">{item.class.name}</p>
         </div>
       </td>
-      <td className="hidden md:table-cell">{item.StudentId}</td>
+      <td className="hidden md:table-cell">{item.student.StudentId}</td>
       <td className="hidden md:table-cell">{item.class.name[0]}</td>
       <td className="hidden lg:table-cell">{item.year}</td>
-      <td className="hidden lg:table-cell">{item.phone}</td>
-      <td className="hidden xl:table-cell">{item.address}</td>
+      <td className="hidden lg:table-cell">{item.student.phone}</td>
+      <td className="hidden xl:table-cell">{item.student.address}</td>
       <td>
         <div className="flex items-center gap-2">
-          <Link href={`/list/students/${item.id}`}>
+          <Link href={`/list/students/${item.student.id}`}>
             <button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaSky">
               <Image src="/view.png" alt="" width={16} height={16} />
             </button>
           </Link>
           {role === "admin" && (
-            // <button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaPurple">
-            //   <Image src="/delete.png" alt="" width={16} height={16} />
-            // </button>
-            (<FormContainer table="student" type="delete" id={item.id} />)
+            <FormContainer table="student" type="delete" id={item.student.id} />
           )}
         </div>
       </td>
@@ -124,17 +118,19 @@ const StudentListPage = async (
   const p = page ? parseInt(page) : 1;
 
   // URL PARAMS CONDITION
-  const query: Prisma.StudentWhereInput = {};
+  const query: Prisma.EnrollmentWhereInput = {};
 
   if (queryParams) {
     for (const [key, value] of Object.entries(queryParams)) {
       if (value !== undefined) {
         switch (key) {
           case "search":
-            query.OR = [
-              { name: { contains: value, mode: "insensitive" } },
-              { StudentId: { contains: value, mode: "insensitive" } }
-            ];
+            query.student = {
+              OR: [
+                { name: { contains: value, mode: "insensitive" } },
+                { StudentId: { contains: value, mode: "insensitive" } }
+              ]
+            };
             break;
           default:
             break;
@@ -148,23 +144,30 @@ const StudentListPage = async (
     query.year = parseInt(year);
   }
 
+  // Fetch all years that exist in Enrollment for the filter
+  const allYears = await prisma.enrollment.findMany({
+    select: { year: true },
+    distinct: ['year'],
+    orderBy: { year: 'desc' }
+  });
+  const yearOptions = allYears.map(e => e.year).sort((a, b) => b - a);
+
   const [data, count] = await prisma.$transaction([
-    prisma.student.findMany({
+    prisma.enrollment.findMany({
       where: query,
       include: {
+        student: true,
         class: true,
       },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
       orderBy: sort && direction ? {
-        [sort.includes('.') ? sort.split('.')[0] : sort]: sort.includes('.') 
-          ? { [sort.split('.')[1]]: direction }
-          : direction
+        [sort]: direction
       } : {
-        name: 'asc'
+        year: 'desc'
       }
     }),
-    prisma.student.count({ where: query }),
+    prisma.enrollment.count({ where: query }),
   ]);
 
   return (
@@ -184,7 +187,7 @@ const StudentListPage = async (
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
             {/* Year Filter */}
-            <YearFilter currentYear={year} />
+            <YearFilter currentYear={year ?? ""} years={yearOptions} />
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
               <Image src="/filter.png" alt="" width={14} height={14} />
             </button>

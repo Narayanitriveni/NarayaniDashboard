@@ -53,7 +53,12 @@ export default function IDCardPage(props: { params: { id: string } }) {
         setLoading(true);
         const response = await getStudentIdCardData(id);
         if (response.success && response.data) {
-          setStudent(response.data);
+          // Ensure the response.data has class and grade properties
+          if ('class' in response.data && 'grade' in response.data) {
+            setStudent(response.data as StudentWithDetails);
+          } else {
+            setError('Student data is missing class or grade information');
+          }
         } else {
           setError(response.message || 'Failed to load student data');
         }

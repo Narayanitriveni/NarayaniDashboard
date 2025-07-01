@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import prisma from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { format } from "date-fns";
+import { Enrollment } from "@prisma/client";
 
 const TeacherPage = async () => {
   const session = await auth();
@@ -23,14 +24,15 @@ const TeacherPage = async () => {
               grade: true,
               students: {
                 include: {
-                  attendances: {
-                    where: {
-                      date: {
-                        gte: new Date(new Date().setDate(new Date().getDate() - 7)) // Last 7 days
-                      }
-                    },
+                  student: {
                     include: {
-                      lesson: true
+                      attendances: {
+                        where: {
+                          date: {
+                            gte: new Date(new Date().setDate(new Date().getDate() - 7)) // Last 7 days
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -44,27 +46,31 @@ const TeacherPage = async () => {
           grade: true,
           students: {
             include: {
-              results: {
+              student: {
                 include: {
-                  exam: {
+                  results: {
                     include: {
-                      subject: true
-                    }
-                  },
-                  assignment: {
-                    include: {
-                      lesson: {
+                      exam: {
                         include: {
                           subject: true
                         }
+                      },
+                      assignment: {
+                        include: {
+                          lesson: {
+                            include: {
+                              subject: true
+                            }
+                          }
+                        }
                       }
-                    }
+                    },
+                    orderBy: {
+                      id: 'desc'
+                    },
+                    take: 5
                   }
-                },
-                orderBy: {
-                  id: 'desc'
-                },
-                take: 5
+                }
               }
             }
           },
@@ -167,10 +173,10 @@ const TeacherPage = async () => {
                   <div>
                     <p className="text-gray-500">Recent Results</p>
                     <div className="mt-1">
-                      {class_.students.slice(0, 3).map(student => (
-                        <div key={student.id} className="flex justify-between">
-                          <span>{student.name}</span>
-                          <span>{student.results[0]?.score || 'N/A'}</span>
+                      {class_.students.slice(0, 3).map(enrollment => (
+                        <div key={enrollment.id} className="flex justify-between">
+                          <span>{enrollment.student.name}</span>
+                          <span>{enrollment.student.results[0]?.score || 'N/A'}</span>
                         </div>
                       ))}
                     </div>
@@ -206,11 +212,11 @@ const TeacherPage = async () => {
                   <span className="text-sm text-gray-500">Class {lesson.class.name}</span>
                 </div>
                 <div className="space-y-2">
-                  {lesson.class.students.slice(0, 3).map(student => {
-                    const recentAttendance = student.attendances[0];
+                  {lesson.class.students.slice(0, 3).map(enrollment => {
+                    const recentAttendance = enrollment.student.attendances[0];
                     return (
-                      <div key={student.id} className="flex justify-between items-center">
-                        <span className="text-sm">{student.name}</span>
+                      <div key={enrollment.id} className="flex justify-between items-center">
+                        <span className="text-sm">{enrollment.student.name}</span>
                         <span className={`px-2 py-1 rounded-full text-xs ${
                           recentAttendance?.status === "PRESENT" ? "bg-green-100 text-green-800" :
                           recentAttendance?.status === "ABSENT" ? "bg-red-100 text-red-800" :

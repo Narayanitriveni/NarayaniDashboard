@@ -95,7 +95,7 @@ export const FormContainer = async ({
           select: { id: true, level: true },
         });
         const studentClasses = await prisma.class.findMany({
-          include: { _count: { select: { students: true } } },
+          select: { id: true, name: true },
         });
         relatedData = { classes: studentClasses, grades: studentGrades };
         break;
@@ -143,10 +143,11 @@ export const FormContainer = async ({
         relatedData = { lessons: assignmentLessons };
         break;
       case "result":
-        const [resultStudents, resultExams, resultAssignments] = await Promise.all([
-          prisma.student.findMany({
+        // Use Enrollment to get students and their classes
+        const [resultEnrollments, resultExams, resultAssignments] = await Promise.all([
+          prisma.enrollment.findMany({
             where: {
-              ...(role === "teacher" ? { 
+              ...(role === "teacher" ? {
                 class: {
                   lessons: {
                     some: { teacherId: currentUserId! }
@@ -154,29 +155,26 @@ export const FormContainer = async ({
                 }
               } : {}),
             },
-            select: { 
-              id: true, 
-              name: true,
-              surname: true,
-              StudentId: true
-            },
+            include: {
+              student: {
+                select: { id: true, name: true, surname: true, StudentId: true }
+              },
+              class: {
+                select: { name: true }
+              }
+            }
           }),
           prisma.exam.findMany({
             where: {
               ...(role === "teacher" ? {
                 subject: {
                   teachers: {
-                    some: {
-                      id: currentUserId!
-                    }
+                    some: { id: currentUserId! }
                   }
                 }
               } : {})
             },
-            select: { 
-              id: true, 
-              title: true 
-            },
+            select: { id: true, title: true },
           }),
           prisma.assignment.findMany({
             where: {
@@ -184,12 +182,17 @@ export const FormContainer = async ({
                 ...(role === "teacher" ? { teacherId: currentUserId! } : {})
               }
             },
-            select: { 
-              id: true, 
-              title: true 
-            },
+            select: { id: true, title: true },
           }),
         ]);
+        // Flatten students from enrollments for the form
+        const resultStudents = resultEnrollments.map(e => ({
+          id: e.student.id,
+          name: e.student.name,
+          surname: e.student.surname,
+          StudentId: e.student.StudentId,
+          className: e.class.name
+        }));
         relatedData = { 
           students: resultStudents, 
           exams: resultExams, 
@@ -233,7 +236,7 @@ export const FormContainer = async ({
         break;
       case "fee":
         const feeStudents = await prisma.student.findMany({
-          select: { id: true, name: true, surname: true,StudentId: true },
+          select: { id: true, name: true, surname: true, StudentId: true },
         });
         relatedData = { students: feeStudents };
         break;
@@ -244,7 +247,6 @@ export const FormContainer = async ({
               status: {
                 in: ['UNPAID', 'PARTIAL', 'OVERDUE']  // Only show fees that need payment
               },
-              // Only include fees with remaining balance
               totalAmount: {
                 gt: 0  // totalAmount > 0
               }
@@ -260,12 +262,8 @@ export const FormContainer = async ({
                   id: true,
                   name: true,
                   surname: true,
-                  StudentId: true,
-                  class: {
-                    select: {
-                      name: true
-                    }
-                  }
+                  StudentId: true
+                  // Removed class
                 }
               }
             },
@@ -318,19 +316,26 @@ export const FormContainer = async ({
           }
         });
 
-        // Get students for the available classes
-        const availableStudents = await prisma.student.findMany({
+        // Get students for the available classes and year (latest year)
+        const latestYear = await prisma.enrollment.aggregate({
+          _max: { year: true }
+        });
+        const availableEnrollments = await prisma.enrollment.findMany({
           where: {
             classId: {
               in: availableClasses.map(c => c.id)
-            }
+            },
+            year: latestYear._max.year ?? undefined
           },
-          select: {
-            id: true,
-            name: true,
-            surname: true,
-            StudentId: true,
-            classId: true,
+          include: {
+            student: {
+              select: {
+                id: true,
+                name: true,
+                surname: true,
+                StudentId: true
+              }
+            },
             class: {
               select: {
                 name: true
@@ -338,6 +343,14 @@ export const FormContainer = async ({
             }
           }
         });
+        // Flatten students from enrollments for the form
+        const availableStudents = availableEnrollments.map(e => ({
+          id: e.student.id,
+          name: e.student.name,
+          surname: e.student.surname,
+          StudentId: e.student.StudentId,
+          className: e.class.name
+        }));
 
         relatedData = { 
           classes: availableClasses,

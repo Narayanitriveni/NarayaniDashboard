@@ -152,7 +152,7 @@ const AssignmentListPage = async (
       query.lesson.class = {
         students: {
           some: {
-            id: currentUserId!,
+            studentId: currentUserId!,
           },
         },
       };
@@ -161,7 +161,9 @@ const AssignmentListPage = async (
       query.lesson.class = {
         students: {
           some: {
-            parentId: currentUserId!,
+            student: {
+              parentId: currentUserId!,
+            },
           },
         },
       };

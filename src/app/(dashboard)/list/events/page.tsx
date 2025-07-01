@@ -127,13 +127,17 @@ const EventListPage = async (
   } else if (role === "student") {
     query.class = {
       students: {
-        some: { id: currentUserId! }
+        some: { studentId: currentUserId! }
       }
     };
   } else if (role === "parent") {
     query.class = {
       students: {
-        some: { parentId: currentUserId! }
+        some: { 
+          student: {
+            parentId: currentUserId! 
+          }
+        }
       }
     };
   }

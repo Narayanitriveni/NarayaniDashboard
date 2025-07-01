@@ -10,9 +10,12 @@ import { ADToBS } from 'bikram-sambat-js';
 
 type FeeWithDetails = Fee & {
   student: Student & {
-    class: {
-      name: string;
-    };
+    enrollments: {
+      class: {
+        name: string;
+      };
+      leftAt: Date | null;
+    }[];
   };
   payments: Payment[];
 };
@@ -43,6 +46,7 @@ export default function ReceiptPage(props: { params: { id: string } }) {
       try {
         setLoading(true);
         const data = await getFeeReceiptData(id);
+        // No need for type assertion, just set the data
         setFee(data);
       } catch (error) {
         console.error('Error fetching fee data:', error);
@@ -147,6 +151,9 @@ export default function ReceiptPage(props: { params: { id: string } }) {
   const remainingAmount = Number(fee.totalAmount) - totalPaid;
   const receiptNumber = `RCP-${fee.id}-${Date.now().toString().slice(-6)}`;
 
+  const currentEnrollment = fee?.student.enrollments.find(e => e.leftAt === null);
+  const studentClass = currentEnrollment?.class;
+
   return (
     <div className="p-4 bg-gray-100 min-h-screen">
       <div className="max-w-4xl mx-auto">
@@ -187,7 +194,7 @@ export default function ReceiptPage(props: { params: { id: string } }) {
                   <span className="font-medium">Name:</span> {fee.student.name} {fee.student.surname}
                 </p>
                 <p className="text-sm text-gray-600">
-                  <span className="font-medium">Class:</span> {fee.student.class.name}
+                  <span className="font-medium">Class:</span> {studentClass?.name || 'N/A'}
                 </p>
                 <p className="text-sm text-gray-600">
                   <span className="font-medium">Student ID:</span> {fee.student.StudentId}
