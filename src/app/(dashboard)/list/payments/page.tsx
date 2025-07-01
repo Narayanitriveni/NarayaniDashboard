@@ -13,7 +13,9 @@ import { ADToBS } from "bikram-sambat-js";
 
 type PaymentWithRelations = Payment & {
   fee: Fee & {
-    student: Student & { class: Class };
+    student: Student & {
+      enrollments: { class: Class }[];
+    };
   };
 };
 
@@ -68,7 +70,11 @@ const PaymentsListPage = async (
         className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
       >
         <td className="p-4">{`${payment.fee.student.name} ${payment.fee.student.surname}`}</td>
-        <td>{payment.fee.student.class.name}</td>
+        <td>{(() => {
+          const currentEnrollment = payment.fee.student.enrollments?.[0];
+          const currentClass = currentEnrollment?.class;
+          return currentClass ? currentClass.name : "N/A";
+        })()}</td>
         <td>{Number(payment.amount).toLocaleString()}</td>
         <td>{payment.method}</td>
         <td>{`${nepaliMonths[month - 1]} ${day}, ${year}`}</td>
@@ -128,7 +134,14 @@ const PaymentsListPage = async (
       include: {
         fee: {
           include: {
-            student: { include: { class: true } },
+            student: {
+              include: {
+                enrollments: {
+                  include: { class: true },
+                  where: { leftAt: null },
+                },
+              },
+            },
           },
         },
       },
