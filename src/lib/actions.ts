@@ -182,7 +182,10 @@ export const updateClass = async (
       where: {
         id: data.id,
       },
-      data,
+      data: {
+        ...data,
+        supervisorId: data.supervisorId ? data.supervisorId : null, // <-- fix here
+      },
     });
 
     // revalidatePath("/list/class");
