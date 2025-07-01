@@ -2119,6 +2119,7 @@ export const getStudentIdCardData = async (studentId: string) => {
             class: {
               select: {
                 name: true,
+                grade: { select: { level: true } },
               },
             },
           }

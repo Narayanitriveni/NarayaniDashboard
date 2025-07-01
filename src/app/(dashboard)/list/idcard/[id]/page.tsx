@@ -1,154 +1,217 @@
-'use client';
+"use client";
 
-import { StudentIDCard } from '@/components/StudentIDCard';
-import { useEffect, useState, useRef } from 'react';
-import { getStudentIdCardData } from '@/lib/actions';
-import html2pdf from 'html2pdf.js';
-import { ADToBS } from 'bikram-sambat-js';
+import React, { useRef, useState, useEffect } from "react";
+import StudentIDCard, { StudentData } from "@/components/StudentIDCard";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
+import { getStudentIdCardData } from "@/lib/actions";
+import { ADToBS } from "bikram-sambat-js";
 
-type StudentWithDetails = {
-  id: string;
-  name: string;
-  surname: string;
-  StudentId: string;
-  bloodType: string;
-  birthday: Date;
-  phone: string | null;
-  img: string | null;
-  address: string;
-  sex: 'MALE' | 'FEMALE';
-  class: {
-    name: string;
-  };
-  grade: {
-    level: number;
-  };
-  parent?: {
-    name: string;
-    surname: string;
-    phone: string;
-  } | null;
-};
+export default function IDCardPage({ params }: { params: { id: string } }) {
+  const [form, setForm] = useState<StudentData>({
+    regNo: "",
+    name: "",
+    classGrade: "",
+    dob: "",
+    bloodGroup: "",
+    contactNo: "",
+    studentType: "",
+    address: "",
+    photoUrl: "",
+  });
 
-export default function IDCardPage(props: { params: { id: string } }) {
-  const { id } = props.params;
-  const [student, setStudent] = useState<StudentWithDetails | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const cardRef = useRef<HTMLDivElement>(null);
+  const idCardRef = useRef<HTMLDivElement>(null);
 
-  // Get current BS year
-  const currentDate = new Date();
-  const bsDate = ADToBS(currentDate.toISOString().split('T')[0]);
-  const currentBSYear = parseInt(bsDate.split('-')[0]);
-  const schoolYear = `${currentBSYear}-${currentBSYear + 1}`;
-  
-  // Set expiry date to end of current BS year
-  const expiryDate = `31/12/${currentBSYear + 1}`;
-
+  // Fetch student data on mount
   useEffect(() => {
-    async function fetchStudentData() {
-      try {
-        setLoading(true);
-        const response = await getStudentIdCardData(id);
-        if (response.success && response.data) {
-          // Ensure the response.data has class and grade properties
-          if ('class' in response.data && 'grade' in response.data) {
-            setStudent(response.data as StudentWithDetails);
-          } else {
-            setError('Student data is missing class or grade information');
-          }
-        } else {
-          setError(response.message || 'Failed to load student data');
-        }
-      } catch (error) {
-        console.error('Error fetching student data:', error);
-        setError('An unexpected error occurred');
-      } finally {
-        setLoading(false);
+    (async () => {
+      const res = await getStudentIdCardData(params.id);
+      if (res.success && res.data) {
+        const d = res.data;
+        setForm({
+          regNo: d.StudentId || "",
+          name: `${d.name} ${d.surname}`,
+          classGrade: d.enrollments?.[0]?.class?.name || "",
+          dob: d.birthday
+            ? typeof d.birthday === "string"
+              ? d.birthday
+              : d.birthday.toISOString().slice(0, 10)
+            : "",
+          bloodGroup: d.bloodType || "",
+          contactNo: d.phone || "",
+          studentType: "Foot",
+          address: d.address || "",
+          photoUrl: d.img || "",
+        });
       }
-    }
+    })();
+  }, [params.id]);
 
-    fetchStudentData();
-  }, [id]);
-
-  const handleDownload = async () => {
-    if (!cardRef.current) return;
-
-    setIsGenerating(true);
-    try {
-      const element = cardRef.current;
-      const opt = {
-        margin: 0,
-        filename: `student-id-card-${student?.StudentId}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
-      };
-
-      await html2pdf().set(opt).from(element).save();
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-    } finally {
-      setIsGenerating(false);
-    }
+  // Handle form changes
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  if (loading) {
-    return (
-      <div className="p-4 text-center">
-        <h2 className="text-lg font-semibold">Loading...</h2>
-      </div>
-    );
-  }
+  // Handle photo upload
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setForm((prev) => ({ ...prev, photoUrl: ev.target?.result as string }));
+    };
+    reader.readAsDataURL(file);
+  };
 
-  if (error) {
-    return (
-      <div className="p-4 text-center">
-        <h2 className="text-lg font-semibold text-red-500">{error}</h2>
-      </div>
-    );
-  }
-
-  if (!student) {
-    return (
-      <div className="p-4 text-center">
-        <h2 className="text-lg font-semibold text-red-500">Student data not found</h2>
-      </div>
-    );
-  }
+  // Download as PDF
+  const handleDownload = async () => {
+    if (!idCardRef.current) return;
+    const canvas = await html2canvas(idCardRef.current, { scale: 2 });
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF({
+      orientation: "portrait",
+      unit: "px",
+      format: [350, 550],
+    });
+    pdf.addImage(imgData, "PNG", 0, 0, 350, 550);
+    pdf.save(`${form.name.replace(/\s+/g, "_")}_ID_Card.pdf`);
+  };
 
   return (
-    <div className="p-4 bg-gray-100 min-h-screen">
-      <div className="max-w-md mx-auto">
-        <h1 className="text-2xl font-bold mb-4 text-center">Student ID Card</h1>
-        <div className="bg-white rounded-lg shadow-md overflow-hidden" ref={cardRef}>
-          <StudentIDCard 
-            student={student}
-            schoolYear={schoolYear}
-            expiryDate={expiryDate}
-          />
-        </div>
-        <div className="text-center mt-6">
+    <div
+      style={{
+        maxWidth: 900,
+        margin: "0 auto",
+        background: "white",
+        padding: 20,
+        borderRadius: 8,
+        boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
+      }}
+    >
+      <h1 style={{ textAlign: "center", color: "#333" }}>Student ID Card Generator</h1>
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 30,
+          alignItems: "flex-start",
+          justifyContent: "center",
+        }}
+      >
+        {/* Form */}
+        <div style={{ flex: "1 0 320px", minWidth: 320 }}>
+          <div style={{ marginBottom: 12 }}>
+            <label>Registration Number:</label>
+            <input
+              type="text"
+              name="regNo"
+              value={form.regNo}
+              onChange={handleChange}
+              style={{ width: "100%" }}
+            />
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <label>Student Name:</label>
+            <input
+              type="text"
+              name="name"
+              value={form.name}
+              onChange={handleChange}
+              style={{ width: "100%" }}
+            />
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <label>Class/Grade:</label>
+            <input
+              type="text"
+              name="classGrade"
+              value={form.classGrade}
+              onChange={handleChange}
+              style={{ width: "100%" }}
+            />
+          </div>
+          {/* AD input */}
+        
+          {/* BS display */}
+          <div style={{ marginBottom: 12 }}>
+            <label>Date of Birth (B.S.):</label>
+            <input
+              type="text"
+              value={form.dob ? ADToBS(form.dob) : ""}
+              readOnly
+              style={{ width: "100%", background: "#f3f3f3" }}
+            />
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <label>Blood Group:</label>
+            <input
+              type="text"
+              name="bloodGroup"
+              value={form.bloodGroup}
+              onChange={handleChange}
+              style={{ width: "100%" }}
+            />
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <label>Contact Number:</label>
+            <input
+              type="text"
+              name="contactNo"
+              value={form.contactNo}
+              onChange={handleChange}
+              style={{ width: "100%" }}
+            />
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <label>Student Type:</label>
+            <input
+              type="text"
+              name="studentType"
+              value={form.studentType}
+              onChange={handleChange}
+              style={{ width: "100%" }}
+            />
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <label>Address:</label>
+            <input
+              type="text"
+              name="address"
+              value={form.address}
+              onChange={handleChange}
+              style={{ width: "100%" }}
+            />
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <label>Student Photo:</label>
+            <input type="file" accept="image/*" onChange={handlePhotoUpload} />
+          </div>
           <button
             onClick={handleDownload}
-            disabled={isGenerating}
-            className={`px-6 py-3 ${
-              isGenerating 
-                ? 'bg-gray-400' 
-                : 'bg-blue-600 hover:bg-blue-700'
-            } text-white rounded-md transition-colors shadow-md`}
+            style={{
+              background: "#7c4dbe",
+              color: "white",
+              border: "none",
+              padding: "10px 20px",
+              fontSize: 16,
+              borderRadius: 4,
+              cursor: "pointer",
+              marginTop: 20,
+              width: "100%",
+            }}
           >
-            {isGenerating 
-              ? 'Generating PDF...' 
-              : 'Download ID Card'}
+            Download ID Card
           </button>
-          <p className="mt-3 text-sm text-gray-500">
-            {isGenerating 
-              ? 'Please wait while we prepare your PDF...' 
-              : 'ID card will be downloaded as a PDF document'}
-          </p>
+        </div>
+        {/* ID Card Preview */}
+        <div style={{ flex: "1 0 350px", minWidth: 350 }}>
+          <StudentIDCard
+            data={{
+              ...form,
+              dob: form.dob ? ADToBS(form.dob) : "",
+            }}
+            idCardRef={idCardRef}
+          />
         </div>
       </div>
     </div>
