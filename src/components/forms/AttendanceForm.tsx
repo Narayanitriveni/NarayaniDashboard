@@ -40,6 +40,10 @@ const StudentCard = ({ student, onSwipe }: {
     trackTouch: true
   });
 
+  const activeEnrollment = student.enrollments?.find(
+    (enr: any) => enr.leftAt === null
+  );
+
   return (
     <motion.div
       {...handlers}
@@ -61,7 +65,7 @@ const StudentCard = ({ student, onSwipe }: {
         <div className="relative z-10">
           <div className="text-center">
             <h2 className="text-2xl font-bold mb-2">{student.name} {student.surname}</h2>
-            <p className="text-gray-600 mb-1">{student.class?.name}</p>
+            <p className="text-gray-600 mb-1">{activeEnrollment?.class?.name || "N/A"}</p>
             <p className="text-gray-500">Roll No - {student.StudentId}</p>
           </div>
         </div>
@@ -118,10 +122,16 @@ const AttendanceForm = ({
   const classes = relatedData?.classes || [];
   const lessons = relatedData?.lessons || [];
   const students = (relatedData?.students || []).filter(
-    (student: any) =>
-      !processedStudents.includes(student.id) &&
-      !skippedStudents.includes(student.id) &&
-      (!currentClassId || student.classId === parseInt(currentClassId))
+    (student: any) => {
+      const activeEnrollment = student.enrollments?.find(
+        (enr: any) => enr.leftAt === null && (!currentClassId || enr.classId === parseInt(currentClassId))
+      );
+      return (
+        activeEnrollment &&
+        !processedStudents.includes(student.id) &&
+        !skippedStudents.includes(student.id)
+      );
+    }
   );
 
   const handleSwipe = async (direction: "left" | "right", studentId: string) => {

@@ -320,38 +320,29 @@ export const FormContainer = async ({
         const latestYear = await prisma.enrollment.aggregate({
           _max: { year: true }
         });
-        const availableEnrollments = await prisma.enrollment.findMany({
+        const availableStudents = await prisma.student.findMany({
           where: {
-            classId: {
-              in: availableClasses.map(c => c.id)
-            },
-            year: latestYear._max.year ?? undefined
+            enrollments: {
+              some: {
+                classId: { in: availableClasses.map(c => c.id) },
+                year: latestYear._max.year ?? undefined,
+                leftAt: null
+              }
+            }
           },
           include: {
-            student: {
-              select: {
-                id: true,
-                name: true,
-                surname: true,
-                StudentId: true
-              }
-            },
-            class: {
-              select: {
-                name: true
+            enrollments: {
+              where: {
+                classId: { in: availableClasses.map(c => c.id) },
+                year: latestYear._max.year ?? undefined,
+                leftAt: null
+              },
+              include: {
+                class: true
               }
             }
           }
         });
-        // Flatten students from enrollments for the form
-        const availableStudents = availableEnrollments.map(e => ({
-          id: e.student.id,
-          name: e.student.name,
-          surname: e.student.surname,
-          StudentId: e.student.StudentId,
-          className: e.class.name
-        }));
-
         relatedData = { 
           classes: availableClasses,
           lessons: availableLessons,

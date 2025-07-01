@@ -12,7 +12,12 @@ import Image from "next/image";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 
 type AttendanceWithRelations = Attendance & {
-  student: Student & { class: Class };
+  student: Student & {
+    enrollments: {
+      class: Class;
+      leftAt: Date | null;
+    }[];
+  };
   lesson: Lesson;
 };
 
@@ -83,35 +88,41 @@ const AttendanceListPage = async (
       : []),
   ];
 
-  const renderRow = (attendance: AttendanceWithRelations) => (
-    <tr
-      key={attendance.id}
-      className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
-    >
-      <td className="p-4">{`${attendance.student.name} ${attendance.student.surname}`}</td>
-      <td>{attendance.student.class.name}</td>
-      <td>{attendance.lesson?.name || "General"}</td>
-      <td>{formatBSDate(new Date(attendance.date))}</td>
-      <td>
-        <span className={`px-2 py-1 rounded-full text-xs ${
-          attendance.status === "PRESENT" ? "bg-green-100 text-green-800" :
-          attendance.status === "ABSENT" ? "bg-red-100 text-red-800" :
-          attendance.status === "LATE" ? "bg-yellow-100 text-yellow-800" :
-          "bg-gray-100 text-gray-800"
-        }`}>
-          {attendance.status}
-        </span>
-      </td>
-      {(role === "admin" || role === "teacher") && (
+  const renderRow = (attendance: AttendanceWithRelations) => {
+    // Get the current class from enrollments
+    const currentEnrollment = attendance.student.enrollments.find(e => e.leftAt === null);
+    const studentClass = currentEnrollment?.class;
+
+    return (
+      <tr
+        key={attendance.id}
+        className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
+      >
+        <td className="p-4">{`${attendance.student.name} ${attendance.student.surname}`}</td>
+        <td>{studentClass ? studentClass.name : "N/A"}</td>
+        <td>{attendance.lesson?.name || "General"}</td>
+        <td>{formatBSDate(new Date(attendance.date))}</td>
         <td>
-          <div className="flex items-center gap-2">
-            <FormContainer table="attendance" type="update" data={attendance} />
-            <FormContainer table="attendance" type="delete" id={attendance.id} />
-          </div>
+          <span className={`px-2 py-1 rounded-full text-xs ${
+            attendance.status === "PRESENT" ? "bg-green-100 text-green-800" :
+            attendance.status === "ABSENT" ? "bg-red-100 text-red-800" :
+            attendance.status === "LATE" ? "bg-yellow-100 text-yellow-800" :
+            "bg-gray-100 text-gray-800"
+          }`}>
+            {attendance.status}
+          </span>
         </td>
-      )}
-    </tr>
-  );
+        {(role === "admin" || role === "teacher") && (
+          <td>
+            <div className="flex items-center gap-2">
+              <FormContainer table="attendance" type="update" data={attendance} />
+              <FormContainer table="attendance" type="delete" id={attendance.id} />
+            </div>
+          </td>
+        )}
+      </tr>
+    );
+  };
 
   const { page, sort, direction, ...queryParams } = searchParams;
   const p = page ? parseInt(page) : 1;
@@ -164,7 +175,18 @@ const AttendanceListPage = async (
     prisma.attendance.findMany({
       ...query,
       include: {
-        student: { include: { class: true } },
+        student: {
+          include: {
+            enrollments: {
+              include: {
+                class: true
+              },
+              where: {
+                leftAt: null
+              }
+            }
+          }
+        },
         lesson: true,
       },
       take: ITEM_PER_PAGE,
