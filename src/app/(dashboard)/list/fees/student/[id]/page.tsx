@@ -92,7 +92,7 @@ const StudentFeesPage = async (
             <Button variant="outline">Back to Student</Button>
           </Link>
           {role === "admin" && (
-            <FormContainer table="fee" type="create" relatedData={{ studentId: student.id }} />
+            <FormContainer table="payment" type="create" relatedData={{ studentId: student.id }} />
           )}
         </div>
       </div>

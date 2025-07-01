@@ -8,6 +8,8 @@ import TransferButton from "@/components/TransferButton";
 import YearFilter from "@/components/YearFilter";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import BulkFeeModal from "@/components/BulkFeeModal";
+import SortDropdown from "@/components/SortDropdown";
+import TableSearch from "@/components/TableSearch";
 
 const ClassDetailPage = async (props: { params: { id: string }, searchParams?: { year?: string } }) => {
   const { id } = props.params;
@@ -103,6 +105,14 @@ const ClassDetailPage = async (props: { params: { id: string }, searchParams?: {
       header: "Action",
       accessor: "action",
     },
+  ];
+
+  // Sort options for students
+  const studentSortOptions = [
+    { label: "Name (A-Z)", value: "name", direction: "asc" as const },
+    { label: "Name (Z-A)", value: "name", direction: "desc" as const },
+    { label: "ID (Low-High)", value: "StudentId", direction: "asc" as const },
+    { label: "ID (High-Low)", value: "StudentId", direction: "desc" as const },
   ];
 
   // Use enrollment.student for row rendering
@@ -331,8 +341,10 @@ const ClassDetailPage = async (props: { params: { id: string }, searchParams?: {
       <div className="bg-white p-6 rounded-md shadow-sm">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-gray-800">Students</h2>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <YearFilter currentYear={currentYear} years={yearOptions} />
+            <TableSearch placeholder="Search students..." />
+            <SortDropdown options={studentSortOptions} defaultSort="name" />
             {role === "admin" && (
               <FormContainer table="student" type="create" data={{ classId: classData.id }} />
             )}
