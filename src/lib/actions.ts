@@ -2418,9 +2418,9 @@ export const transferStudentsToNextClass = async (
       return { success: false, error: true, message: "Selected next class not found" };
     }
 
-    // Find all active enrollments for the current class
+    // Find all active enrollments for the current class **with year 2082**
     const currentEnrollments = await prisma.enrollment.findMany({
-      where: { classId: data.classId, leftAt: null }
+      where: { classId: data.classId, leftAt: null, year: 2082 }
     });
 
     // Check if next class has enough capacity
@@ -2435,7 +2435,7 @@ export const transferStudentsToNextClass = async (
 
     // Mark current enrollments as left
     await prisma.enrollment.updateMany({
-      where: { classId: data.classId, leftAt: null },
+      where: { classId: data.classId, leftAt: null, year: 2082 },
       data: { leftAt: new Date() }
     });
 
@@ -2475,9 +2475,8 @@ export const getNextGradeClasses = async (currentClassId: number) => {
     }
 
     // Find the next grade
-    const nextGrade = await prisma.grade.findMany({
-      where: { level: { gt: currentClass.grade.level } },
-      orderBy: { level: 'asc' }
+    const nextGrade = await prisma.grade.findFirst({
+      where: { level: currentClass.grade.level + 1 }
     });
 
     if (!nextGrade) {
@@ -2573,5 +2572,30 @@ export const createBulkFees = async (
       message: err.message || "An unexpected error occurred",
       details: [{ message: err.message || "Unknown error" }],
     };
+  }
+};
+export const getAllClassesExceptCurrent = async (currentClassId: number) => {
+  try {
+    const allClasses = await prisma.class.findMany({
+      where: {
+        id: { not: currentClassId }
+      },
+      select: {
+        id: true,
+        name: true,
+        capacity: true,
+        _count: {
+          select: { students: true }
+        }
+      },
+      orderBy: {
+        name: 'asc'
+      }
+    });
+
+    return { success: true, error: false, data: allClasses };
+  } catch (error: any) {
+    console.error("Error fetching all classes:", error);
+    return { success: false, error: true, message: "Failed to fetch classes" };
   }
 };

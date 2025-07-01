@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getNextGradeClasses, transferStudentsToNextClass } from '@/lib/actions';
+import { getAllClassesExceptCurrent, transferStudentsToNextClass } from '@/lib/actions';
 import { toast } from 'react-hot-toast';
 
 interface TransferModalProps {
@@ -27,11 +27,11 @@ const TransferModal = ({ classId, onClose, currentClassName }: TransferModalProp
     const fetchClasses = async () => {
       setIsLoading(true);
       setError(null);
-      const result = await getNextGradeClasses(classId);
+      const result = await getAllClassesExceptCurrent(classId);
       if (result.success) {
         setNextClasses(result.data || []);
       } else {
-        setError(result.message || 'Failed to load next grade classes');
+        setError(result.message || 'Failed to load classes');
       }
       setIsLoading(false);
     };
@@ -69,7 +69,7 @@ const TransferModal = ({ classId, onClose, currentClassName }: TransferModalProp
         {error && <p className="text-red-500">Error: {error}</p>}
 
         {!isLoading && !error && nextClasses.length === 0 && (
-          <p>No available classes found in the next grade.</p>
+          <p>No available classes found.</p>
         )}
 
         {!isLoading && !error && nextClasses.length > 0 && (
