@@ -10,13 +10,19 @@ import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import BulkFeeModal from "@/components/BulkFeeModal";
 import SortDropdown from "@/components/SortDropdown";
 import TableSearch from "@/components/TableSearch";
+import { removeStudentFromClass } from "@/lib/actions";
+import { useRouter } from "next/navigation";
+import StudentDeleteButton from "@/components/StudentDeleteButton";
 
 const ClassDetailPage = async (props: { params: { id: string }, searchParams?: { year?: string } }) => {
   const { id } = props.params;
   const session = await auth();
   const role = (session.sessionClaims?.metadata as { role?: string })?.role;
 
-  const classId = parseInt(id);
+  const classId = Number(id);
+  if (!classId || isNaN(classId)) {
+    return <div className="m-4 p-4 bg-red-100 rounded-md">Invalid class ID</div>;
+  }
 
   // Fetch class with related data (except students)
   const classData = await prisma.class.findUnique({
@@ -56,7 +62,8 @@ const ClassDetailPage = async (props: { params: { id: string }, searchParams?: {
   const enrollments = await prisma.enrollment.findMany({
     where: {
       classId: classId,
-      ...(currentYear ? { year: parseInt(currentYear) } : {})
+      ...(currentYear ? { year: parseInt(currentYear) } : {}),
+      leftAt: null // Only active enrollments
     },
     include: {
       student: {
@@ -142,6 +149,9 @@ const ClassDetailPage = async (props: { params: { id: string }, searchParams?: {
                 <Image src="/view.png" alt="" width={16} height={16} />
               </button>
             </Link>
+            {role === "admin" && (
+              <StudentDeleteButton enrollmentId={enrollment.id} />
+            )}
           </div>
         </td>
       </tr>

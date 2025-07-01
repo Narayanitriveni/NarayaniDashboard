@@ -2447,7 +2447,7 @@ export const transferStudentsToNextClass = async (
             studentId: enrollment.studentId,
             classId: nextClass.id,
             gradeId: nextGrade.id,
-            year: enrollment.year + 1,
+            year: enrollment.year,
             joinedAt: new Date(),
             leftAt: null
           }
@@ -2597,5 +2597,25 @@ export const getAllClassesExceptCurrent = async (currentClassId: number) => {
   } catch (error: any) {
     console.error("Error fetching all classes:", error);
     return { success: false, error: true, message: "Failed to fetch classes" };
+  }
+};
+
+export const removeStudentFromClass = async (
+  prevState: any,
+  formData: FormData
+) => {
+  const enrollmentId = formData.get("enrollmentId");
+  if (!enrollmentId || typeof enrollmentId !== "string") {
+    return { success: false, error: true, message: "Invalid enrollment ID" };
+  }
+  try {
+    await prisma.enrollment.update({
+      where: { id: enrollmentId },
+      data: { leftAt: new Date() }
+    });
+    return { success: true, error: false };
+  } catch (err: any) {
+    console.error("Error removing student from class:", err);
+    return { success: false, error: true, message: err.message || "Failed to remove student" };
   }
 };
