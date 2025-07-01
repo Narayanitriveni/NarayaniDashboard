@@ -6,6 +6,8 @@ import Table from "@/components/Table";
 import FormContainer from "@/components/FormContainer";
 import TransferButton from "@/components/TransferButton";
 import YearFilter from "@/components/YearFilter";
+import { Card, CardContent, CardTitle } from "@/components/ui/card";
+import BulkFeeModal from "@/components/BulkFeeModal";
 
 const ClassDetailPage = async (props: { params: { id: string }, searchParams?: { year?: string } }) => {
   const { id } = props.params;
@@ -60,6 +62,26 @@ const ClassDetailPage = async (props: { params: { id: string }, searchParams?: {
       }
     }
   });
+
+  // Fetch fees for this class's students
+  const studentIds = enrollments.map(enrollment => enrollment.student.id);
+  const classFees = await prisma.fee.findMany({
+    where: {
+      studentId: {
+        in: studentIds
+      }
+    },
+    include: {
+      student: true
+    }
+  });
+
+  // Calculate fee summary for this class
+  const now = new Date();
+  const totalFees = classFees.reduce((sum, f) => sum + Number(f.totalAmount), 0);
+  const collected = classFees.reduce((sum, f) => sum + Number(f.paidAmount), 0);
+  const pending = classFees.filter(f => f.status !== "PAID").reduce((sum, f) => sum + (Number(f.totalAmount) - Number(f.paidAmount)), 0);
+  const overdue = classFees.filter(f => f.status !== "PAID" && new Date(f.dueDate) < now).reduce((sum, f) => sum + (Number(f.totalAmount) - Number(f.paidAmount)), 0);
 
   // Student list table configuration
   const studentColumns = [
@@ -265,6 +287,43 @@ const ClassDetailPage = async (props: { params: { id: string }, searchParams?: {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Fee Summary Cards */}
+      <div className="bg-white p-6 rounded-md shadow-sm">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold text-gray-800">Fee Summary</h2>
+          {role === "admin" && (
+            <BulkFeeModal classId={classData.id} className={classData.name} />
+          )}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="p-4">
+              <CardTitle className="text-base">Total Fees</CardTitle>
+              <div className="text-2xl font-bold">₹{totalFees.toLocaleString()}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <CardTitle className="text-base">Collected</CardTitle>
+              <div className="text-2xl font-bold">₹{collected.toLocaleString()}</div>
+              <div className="text-xs text-gray-500">{((collected/totalFees)*100 || 0).toFixed(0)}% of total fees</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <CardTitle className="text-base">Pending</CardTitle>
+              <div className="text-2xl font-bold">₹{pending.toLocaleString()}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <CardTitle className="text-base">Overdue</CardTitle>
+              <div className="text-2xl font-bold">₹{overdue.toLocaleString()}</div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 

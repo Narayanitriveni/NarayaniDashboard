@@ -105,6 +105,9 @@ const TeacherAttendanceForm = dynamic(() => import("./forms/TeacherattendanceFor
 const AccountantForm = dynamic(() => import("./forms/AccountantForm"), {
   loading: () => <h1>Loading...</h1>,
 });
+const BulkFeeForm = dynamic(() => import("./forms/BulkFeeForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
 // TODO: OTHER FORMS
 
 const forms: {
@@ -247,6 +250,13 @@ const forms: {
       type={type}
       data={data}
       setOpen={setOpen}
+    />
+  ),
+  bulkFee: (setOpen, type, data, relatedData) => (
+    <BulkFeeForm
+      classId={relatedData?.classId}
+      className={relatedData?.className}
+      onSuccess={() => setOpen(false)}
     />
   ),
 };

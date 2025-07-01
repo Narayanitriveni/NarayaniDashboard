@@ -287,3 +287,13 @@ export const teacherAttendanceSchema = z.object({
 });
 
 export type TeacherAttendanceSchema = z.infer<typeof teacherAttendanceSchema>;
+
+export const bulkFeeSchema = z.object({
+  classId: z.coerce.number().min(1, "Class is required"),
+  totalAmount: z.coerce.number().positive("Amount must be positive"),
+  dueDate: z.coerce.date({ required_error: "Due date is required" }),
+  description: z.string().optional(),
+  year: z.coerce.number().min(2070, { message: "Year must be 2070 or later!" }).max(2090, { message: "Year must be 2090 or earlier!" }).default(2081),
+});
+
+export type BulkFeeSchema = z.infer<typeof bulkFeeSchema>;

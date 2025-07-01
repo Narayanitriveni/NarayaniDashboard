@@ -106,7 +106,7 @@ const FeesListPage = async (
     ];
 
     // Get current class from enrollments (where leftAt is null - still in class)
-    const currentEnrollment = fee.student.enrollments.find(enrollment => enrollment.leftAt === null);
+    const currentEnrollment = fee.student.enrollments[0]; // Since we're taking only 1 enrollment
     const currentClass = currentEnrollment?.class;
 
     return (
@@ -116,11 +116,7 @@ const FeesListPage = async (
       >
         <td className="p-4">{`${fee.student.name} ${fee.student.surname}`}</td>
         <td>
-          {currentClass ? (() => {
-            const className = currentClass.name.replace('Class ', '');
-            const [grade, section] = className.split('-');
-            return section ? `${grade}${section}` : grade;
-          })() : "N/A"}
+          {currentClass ? currentClass.name : "N/A"}
         </td>
         <td>{Number(fee.totalAmount).toLocaleString()}</td>
         <td>{Number(fee.totalAmount - fee.paidAmount).toLocaleString()}</td>
@@ -166,7 +162,11 @@ const FeesListPage = async (
               },
               where: {
                 leftAt: null  // Students still in the class
-              }
+              },
+              orderBy: {
+                joinedAt: 'desc'  // Get the most recent enrollment
+              },
+              take: 1  // Only get the current enrollment
             }
           }
         }

@@ -18,6 +18,7 @@ import {
   PaymentSchema,
   AttendanceSchema,
   FinanceSchema,
+  BulkFeeSchema,
 } from "./formValidationSchemas";
 import prisma from "./prisma";
 import { clerkClient } from "@clerk/nextjs/server";
@@ -2501,5 +2502,72 @@ export const getNextGradeClasses = async (currentClassId: number) => {
   } catch (error: any) {
     console.error("Error fetching next grade classes:", error);
     return { success: false, error: true, message: "Failed to fetch next grade classes" };
+  }
+};
+
+export const createBulkFees = async (
+  currentState: CurrentState,
+  data: { classId: number; totalAmount: number; dueDate: Date; description?: string; year: number }
+): Promise<CurrentState> => {
+  try {
+    // Get all students enrolled in the class for the specified year
+    const enrollments = await prisma.enrollment.findMany({
+      where: {
+        classId: data.classId,
+        year: data.year,
+        leftAt: null // Only active students
+      },
+      include: {
+        student: {
+          select: {
+            id: true,
+            name: true,
+            surname: true
+          }
+        }
+      }
+    });
+
+    if (enrollments.length === 0) {
+      return {
+        success: false,
+        error: true,
+        message: "No students found in this class for the selected year"
+      };
+    }
+
+    // Create fees for all students in a transaction with increased timeout
+    await prisma.$transaction(async (tx) => {
+      const feePromises = enrollments.map(enrollment =>
+        tx.fee.create({
+          data: {
+            studentId: enrollment.student.id,
+            totalAmount: BigInt(data.totalAmount),
+            paidAmount: BigInt(0),
+            dueDate: data.dueDate,
+            status: "UNPAID",
+            description: data.description || `Class fee for ${data.year}`
+          }
+        })
+      );
+
+      await Promise.all(feePromises);
+    }, {
+      timeout: 30000 // 30 seconds timeout
+    });
+
+    return {
+      success: true,
+      error: false,
+      message: `Successfully created fees for ${enrollments.length} students`
+    };
+  } catch (err: any) {
+    console.error("Error creating bulk fees:", err);
+    return {
+      success: false,
+      error: true,
+      message: err.message || "An unexpected error occurred",
+      details: [{ message: err.message || "Unknown error" }],
+    };
   }
 };

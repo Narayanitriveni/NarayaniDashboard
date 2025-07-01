@@ -48,6 +48,7 @@ export type FormContainerProps = {
     | "finance"
     | "teacherattendance"
     | "accountant"
+    | "bulkFee"
   type: "create" | "update" | "delete";
   data?: any;
   id?: number | string;
@@ -246,6 +247,10 @@ export const FormContainer = async ({
           select: { id: true, name: true, surname: true, StudentId: true },
         });
         relatedData = { students: feeStudents };
+        break;
+      case "bulkFee":
+        // For bulk fee creation, we don't need additional data
+        relatedData = { classId: data?.classId, className: data?.className };
         break;
       case "payment":
         relatedData = {
