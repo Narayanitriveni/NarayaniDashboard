@@ -10,8 +10,6 @@ import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import BulkFeeModal from "@/components/BulkFeeModal";
 import SortDropdown from "@/components/SortDropdown";
 import TableSearch from "@/components/TableSearch";
-import { removeStudentFromClass } from "@/lib/actions";
-import { useRouter } from "next/navigation";
 import StudentDeleteButton from "@/components/StudentDeleteButton";
 import StudentMultiTransfer from '@/components/StudentMultiTransfer';
 
@@ -112,11 +110,6 @@ const ClassDetailPage = async (props: { params: { id: string }, searchParams?: {
       className: "hidden md:table-cell",
     },
     {
-      header: "Parent",
-      accessor: "parent",
-      className: "hidden md:table-cell",
-    },
-    {
       header: "Action",
       accessor: "action",
     },
@@ -134,23 +127,12 @@ const ClassDetailPage = async (props: { params: { id: string }, searchParams?: {
   const renderStudentRow = (enrollment: any) => {
     const student = enrollment.student;
     return (
-      <tr
-        key={student.id}
-        className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
-      >
-        <td className="flex items-center gap-4 p-4">
-          {student.img && (
-            <div className="relative w-8 h-8 rounded-full overflow-hidden">
-              <Image src={student.img} alt={student.name} fill sizes="32px" className="object-cover" />
-            </div>
-          )}
+      <tr className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight">
+        <td className="p-4 align-middle">
           <span>{student.name} {student.surname}</span>
         </td>
-        <td className="hidden md:table-cell">{student.StudentId}</td>
-        <td className="hidden md:table-cell">
-          {student.parent ? `${student.parent.name} ${student.parent.surname}` : "N/A"}
-        </td>
-        <td>
+        <td className="p-4 align-middle">{student.StudentId}</td>
+        <td className="p-4 align-middle">
           <div className="flex items-center gap-2">
             <Link href={`/list/students/${student.id}`}>
               <button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaSky">
@@ -368,13 +350,6 @@ const ClassDetailPage = async (props: { params: { id: string }, searchParams?: {
             )}
           </div>
         </div>
-        {role === "admin" && (
-          <StudentMultiTransfer
-            enrollments={enrollments}
-            classes={allClasses}
-            currentClassId={classData.id}
-          />
-        )}
         {enrollments.length > 0 ? (
           <Table 
             columns={studentColumns} 
@@ -383,25 +358,6 @@ const ClassDetailPage = async (props: { params: { id: string }, searchParams?: {
           />
         ) : (
           <div className="text-center py-8 text-gray-500">No students enrolled in this class</div>
-        )}
-      </div>
-
-      {/* Lessons Section */}
-      <div className="bg-white p-6 rounded-md shadow-sm">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-gray-800">Lessons</h2>
-          {role === "admin" && (
-            <FormContainer table="lesson" type="create" data={{ classId: classData.id }} />
-          )}
-        </div>
-        {classData.lessons.length > 0 ? (
-          <Table 
-            columns={lessonColumns} 
-            data={classData.lessons} 
-            renderRow={renderLessonRow} 
-          />
-        ) : (
-          <div className="text-center py-8 text-gray-500">No lessons scheduled for this class</div>
         )}
       </div>
 
@@ -459,6 +415,36 @@ const ClassDetailPage = async (props: { params: { id: string }, searchParams?: {
             <div className="text-center py-8 text-gray-500">No upcoming events</div>
           )}
         </div>
+      </div>
+
+      {/* Move StudentMultiTransfer to below Announcements & Events */}
+      {role === "admin" && (
+        <div className="bg-white p-6 rounded-md shadow-sm mt-6">
+          <StudentMultiTransfer
+            enrollments={enrollments}
+            classes={allClasses}
+            currentClassId={classData.id}
+          />
+        </div>
+      )}
+
+      {/* Lessons Section */}
+      <div className="bg-white p-6 rounded-md shadow-sm">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold text-gray-800">Lessons</h2>
+          {role === "admin" && (
+            <FormContainer table="lesson" type="create" data={{ classId: classData.id }} />
+          )}
+        </div>
+        {classData.lessons.length > 0 ? (
+          <Table 
+            columns={lessonColumns} 
+            data={classData.lessons} 
+            renderRow={renderLessonRow} 
+          />
+        ) : (
+          <div className="text-center py-8 text-gray-500">No lessons scheduled for this class</div>
+        )}
       </div>
     </div>
   );

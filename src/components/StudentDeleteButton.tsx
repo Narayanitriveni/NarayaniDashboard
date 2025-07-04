@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 import { useTransition, useEffect } from "react";
 import { toast } from "react-toastify";

@@ -7,13 +7,13 @@ import YearFilter from "@/components/YearFilter";
 
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
-import { Class, Prisma, Student, Enrollment } from "@prisma/client";
+import { Class, Prisma, Student, Enrollment, Grade } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
 
 import { auth } from "@clerk/nextjs/server";
 
-type EnrollmentList = Enrollment & { student: Student, class: Class };
+type EnrollmentList = Enrollment & { student: Student, class: Class,grade:Grade };
 
 const sortOptions = [
   { label: "Name (A-Z)", value: "name", direction: "asc" as const },
@@ -94,7 +94,7 @@ const StudentListPage = async (
         </div>
       </td>
       <td className="hidden md:table-cell">{item.student.StudentId}</td>
-      <td className="hidden md:table-cell">{item.class.name[0]}</td>
+      <td className="hidden md:table-cell">{item.grade?.level ?? "N/A"}</td>
       <td className="hidden lg:table-cell">{item.year}</td>
       <td className="hidden lg:table-cell">{item.student.phone}</td>
       <td className="hidden xl:table-cell">{item.student.address}</td>
@@ -158,6 +158,7 @@ const StudentListPage = async (
       include: {
         student: true,
         class: true,
+        grade: true,
       },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
