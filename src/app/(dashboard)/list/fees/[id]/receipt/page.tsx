@@ -166,27 +166,25 @@ export default function ReceiptPage(props: { params: { id: string } }) {
       }}
     >
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-2 rounded-t">
-        <div className="flex items-center justify-between">
+      <div className="bg-[#9C27B0] text-white p-2 rounded-t">
+        <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <div className="bg-white p-0.5 rounded-full">
-              <img
-                src="/logo.png"
-                alt="School Logo"
-                width={32}
-                height={32}
-                className="h-8 w-8"
-                crossOrigin="anonymous"
-              />
-            </div>
+            <img
+              src="/school_logo.png"
+              alt="School Logo"
+              width={32}
+              height={32}
+              className="h-8 w-8 object-contain"
+              crossOrigin="anonymous"
+            />
             <div>
-              <h1 className="text-base font-bold tracking-tight leading-tight">Academix School</h1>
-              <p className="text-[10px] text-blue-100 leading-tight">Excellence in Education</p>
+              <h1 className="text-base font-bold tracking-tight leading-tight">Shree Narayani Gandaki </h1>
+              <p className="text-[10px] text-purple-100 leading-tight">Excellence in Education</p>
             </div>
           </div>
           <div className="text-right">
-            <p className="text-[10px] text-blue-100">Receipt #{receiptNumber}</p>
-            <p className="text-[10px] text-blue-100">{formatBSDate(new Date())}</p>
+            <p className="text-[10px] text-purple-100">Receipt #{receiptNumber}</p>
+            <p className="text-[10px] text-purple-100">{formatBSDate(new Date())}</p>
           </div>
         </div>
       </div>
