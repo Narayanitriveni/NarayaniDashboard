@@ -5,8 +5,8 @@ import { AgendaSchedule } from "@/components/agenda-schedule";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import prisma from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
-import { format } from "date-fns";
-import { Enrollment } from "@prisma/client";
+import { format, isSameDay, subDays } from "date-fns";
+import { BarChart3, Users, CalendarDays, GraduationCap } from "lucide-react";
 
 const TeacherPage = async () => {
   const session = await auth();
@@ -108,35 +108,100 @@ const TeacherPage = async () => {
     type: 'lesson' as const
   }));
 
+  // Dashboard KPIs
+  const uniqueStudentIds = new Set<string>();
+  teacher.classes.forEach(cls => {
+    cls.students.forEach(enrollment => {
+      // @ts-ignore - prisma includes student relation with id
+      uniqueStudentIds.add(enrollment.student.id);
+    });
+  });
+
+  const totalClasses = teacher.classes.length;
+  const totalStudents = uniqueStudentIds.size;
+  const lessonsToday = teacher.lessons.filter(lesson => isSameDay(new Date(lesson.startTime), new Date())).length;
+  const upcomingExams = teacher.classes.flatMap(c => c.exams).filter(exam => new Date(exam.startTime) > new Date()).length;
+
+  // Weekly attendance trend (last 7 days, percentage present)
+  type AttendanceRecord = { key: string; status: string };
+  const attendanceMap = new Map<string, AttendanceRecord>();
+  teacher.lessons.forEach(lesson => {
+    lesson.class.students.forEach(enrollment => {
+      // @ts-ignore
+      const studentId = enrollment.student.id as string;
+      // @ts-ignore
+      enrollment.student.attendances.forEach((att: { date: Date; status: string }) => {
+        const dateKey = format(new Date(att.date), "yyyy-MM-dd");
+        const key = `${studentId}-${dateKey}`;
+        if (!attendanceMap.has(key)) {
+          attendanceMap.set(key, { key: dateKey, status: att.status });
+        }
+      });
+    });
+  });
+
+  const last7Days: Date[] = Array.from({ length: 7 }).map((_, idx) => subDays(new Date(), 6 - idx));
+  const weeklyAttendanceData = last7Days.map(d => {
+    const dateKey = format(d, "yyyy-MM-dd");
+    const records = Array.from(attendanceMap.values()).filter(r => r.key === dateKey);
+    const total = records.length;
+    const present = records.filter(r => r.status === "PRESENT").length;
+    const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
+    return { day: format(d, "EEE"), attendance: percentage };
+  });
+
+  // Class performance averages (from latest results per student)
+  const performanceData = teacher.classes.map(cls => {
+    const scores: number[] = [];
+    cls.students.forEach(enrollment => {
+      const score = enrollment.student.results?.[0]?.score as number | undefined;
+      if (typeof score === "number") scores.push(score);
+    });
+    const avg = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+    return {
+      name: `${cls.name} (G${cls.grade.level})`,
+      class: cls.name,
+      averageScore: avg,
+    };
+  });
+
   return (
     <div className="p-4 flex gap-4 flex-col xl:flex-row">
       {/* LEFT SIDE */}
       <div className="w-full xl:w-2/3 flex flex-col gap-4">
-        {/* Teacher Info Card */}
-        <div className="bg-white p-4 rounded-md">
-          <h1 className="text-xl font-semibold mb-4">Teacher Information</h1>
-          <div className="grid grid-cols-2 gap-4">
+        {/* Hero / Teacher Info */}
+        <div className="bg-gradient-to-r from-indigo-50 to-white p-6 rounded-xl border border-indigo-100">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <p className="text-sm text-gray-500">Name</p>
-              <p className="font-medium">{teacher.name} {teacher.surname}</p>
+              <h1 className="text-2xl font-semibold tracking-tight">Welcome back, {teacher.name} {teacher.surname}</h1>
+              <p className="text-sm text-gray-600 mt-1">ID: {teacher.teacherId} • {teacher.email}</p>
+              <p className="text-sm text-gray-600">Phone: {teacher.phone}</p>
             </div>
-            <div>
-              <p className="text-sm text-gray-500">Teacher ID</p>
-              <p className="font-medium">{teacher.teacherId}</p>
+          </div>
+          {/* KPI Cards */}
+          <div className="mt-6 grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="bg-blue-100 rounded-lg p-4 shadow-sm border border-blue-200">
+              <div className="flex items-center gap-2 text-blue-700 text-xs"><GraduationCap className="w-4 h-4" /> Classes</div>
+              <div className="text-2xl font-semibold mt-1 text-blue-800">{totalClasses}</div>
             </div>
-            <div>
-              <p className="text-sm text-gray-500">Email</p>
-              <p className="font-medium">{teacher.email}</p>
+            <div className="bg-green-100 rounded-lg p-4 shadow-sm border border-green-200">
+              <div className="flex items-center gap-2 text-green-700 text-xs"><Users className="w-4 h-4" /> Students</div>
+              <div className="text-2xl font-semibold mt-1 text-green-800">{totalStudents}</div>
             </div>
-            <div>
-              <p className="text-sm text-gray-500">Phone</p>
-              <p className="font-medium">{teacher.phone}</p>
+            <div className="bg-yellow-100 rounded-lg p-4 shadow-sm border border-yellow-200">
+              <div className="flex items-center gap-2 text-yellow-700 text-xs"><CalendarDays className="w-4 h-4" /> Lessons Today</div>
+              <div className="text-2xl font-semibold mt-1 text-yellow-800">{lessonsToday}</div>
+            </div>
+            <div className="bg-red-100 rounded-lg p-4 shadow-sm border border-red-200">
+              <div className="flex items-center gap-2 text-red-700 text-xs"><BarChart3 className="w-4 h-4" /> Upcoming Exams</div>
+              <div className="text-2xl font-semibold mt-1 text-red-800">{upcomingExams}</div>
             </div>
           </div>
         </div>
 
+    
         {/* Schedule */}
-        <div className="bg-white p-4 rounded-md">
+        <div className="bg-white p-4 rounded-xl border">
           <h1 className="text-xl font-semibold mb-4">Schedule</h1>
           <Tabs defaultValue="agenda" className="w-full">
             <TabsList className="grid w-full grid-cols-3 mb-4">
@@ -160,7 +225,7 @@ const TeacherPage = async () => {
         </div>
 
         {/* Classes Overview */}
-        <div className="bg-white p-4 rounded-md">
+        <div className="bg-white p-4 rounded-xl border">
           <h1 className="text-xl font-semibold mb-4">Classes Overview</h1>
           <div className="space-y-4">
             {teacher.classes.map((class_) => (
@@ -202,7 +267,7 @@ const TeacherPage = async () => {
       {/* RIGHT SIDE */}
       <div className="w-full xl:w-1/3 flex flex-col gap-4">
         {/* Recent Attendance Overview */}
-        <div className="bg-white p-4 rounded-md">
+        <div className="bg-white p-4 rounded-xl border">
           <h1 className="text-xl font-semibold mb-4">Recent Attendance Overview</h1>
           <div className="space-y-4">
             {teacher.lessons.map(lesson => (
@@ -234,7 +299,7 @@ const TeacherPage = async () => {
         </div>
 
         {/* Upcoming Exams */}
-        <div className="bg-white p-4 rounded-md">
+        <div className="bg-white p-4 rounded-xl border">
           <h1 className="text-xl font-semibold mb-4">Upcoming Exams</h1>
           <div className="space-y-4">
             {teacher.classes.flatMap(class_ => class_.exams)

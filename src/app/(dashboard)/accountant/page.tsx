@@ -5,6 +5,10 @@ import RecentTransactions from '@/components/RecentTransactions';
 import prisma from '@/lib/prisma';
 import { IndianRupee, PieChart, TrendingUp, TrendingDown } from 'lucide-react';
 import { ADToBS } from 'bikram-sambat-js';
+import dynamic from 'next/dynamic';
+
+// Fix import path for AccountantSummarySection
+const AccountantSummarySection = dynamic(() => import('./AccountantSummarySection'), { ssr: false });
 
 const AccountantDashboard = async () => {
   // Fetch aggregate financial data
@@ -15,33 +19,61 @@ const AccountantDashboard = async () => {
   const revenue = totalRevenue._sum.paidAmount ?? 0;
   const outstanding = Number(outstandingFees._sum.totalAmount ?? 0) - Number(outstandingFees._sum.paidAmount ?? 0);
   const expenses = totalExpenses._sum.amount ?? 0;
-  
-  const summaryData = [
-    {
-      title: 'Total Revenue',
-      amount: `₹${Number(revenue).toLocaleString()}`,
-      icon: <IndianRupee className="text-green-800" />,
-      color: '#dcfce7',
+
+  // --- Day-wise summary ---
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+  const startOfDay = new Date(todayStr + 'T00:00:00.000Z');
+  const endOfDay = new Date(startOfDay);
+  endOfDay.setDate(endOfDay.getDate() + 1);
+
+  const dayRevenue = await prisma.fee.aggregate({
+    _sum: { paidAmount: true },
+    where: { payments: { some: { date: { gte: startOfDay, lt: endOfDay } } } },
+  });
+  const dayExpenses = await prisma.finance.aggregate({
+    _sum: { amount: true },
+    where: { createdAt: { gte: new Date(todayStr + 'T00:00:00.000Z'), lte: new Date(todayStr + 'T23:59:59.999Z') } },
+  });
+
+  // --- Week-wise summary ---
+  const startOfWeek = new Date(today);
+  startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Monday
+  startOfWeek.setHours(0,0,0,0);
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(startOfWeek.getDate() + 6);
+  endOfWeek.setHours(23,59,59,999);
+  const weekRevenue = await prisma.fee.aggregate({
+    _sum: { paidAmount: true },
+    where: { payments: { some: { date: { gte: startOfWeek, lte: endOfWeek } } } },
+  });
+  const weekExpenses = await prisma.finance.aggregate({
+    _sum: { amount: true },
+    where: { createdAt: { gte: startOfWeek, lte: endOfWeek } },
+  });
+
+  // --- Month-wise summary (already present as monthlyIncome/monthlyExpenses) ---
+  // --- Total summary (already present as revenue/expenses) ---
+
+  // Prepare summary data for each type
+  const summaryData = {
+    day: {
+      revenue: Number(dayRevenue._sum.paidAmount ?? 0),
+      expenses: Number(dayExpenses._sum.amount ?? 0),
     },
-    {
-      title: 'Outstanding Fees',
-      amount: `₹${Number(outstanding).toLocaleString()}`,
-      icon: <TrendingDown className="text-red-800" />,
-      color: '#fee2e2',
+    week: {
+      revenue: Number(weekRevenue._sum.paidAmount ?? 0),
+      expenses: Number(weekExpenses._sum.amount ?? 0),
     },
-    {
-      title: 'Total Expenses',
-      amount: `₹${Number(expenses).toLocaleString()}`,
-      icon: <TrendingUp className="text-yellow-800" />,
-      color: '#fef9c3',
+    month: {
+      revenue: Number(revenue), // fallback to total for now
+      expenses: Number(expenses),
     },
-    {
-        title: 'Net Profit',
-        amount: `₹${(Number(revenue) - Number(expenses)).toLocaleString()}`,
-        icon: <PieChart className="text-blue-800" />,
-        color: '#dbeafe',
-      },
-  ];
+    total: {
+      revenue: Number(revenue),
+      expenses: Number(expenses),
+    },
+  };
 
   // Fetch monthly data for the chart
   const monthlyIncome = await prisma.payment.groupBy({
@@ -116,14 +148,8 @@ const AccountantDashboard = async () => {
   return (
     <div className="p-6 space-y-6">
       <h1 className="text-2xl font-bold">Accountant Dashboard</h1>
-      
-      {/* Financial Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {summaryData.map(item => (
-          <FinancialSummaryCard key={item.title} {...item} />
-        ))}
-      </div>
-
+   
+      <AccountantSummarySection summaryData={summaryData} />
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         <div className="lg:col-span-3 bg-white p-6 rounded-lg shadow-md">
@@ -135,7 +161,6 @@ const AccountantDashboard = async () => {
           <ExpenseDistributionChart data={expenseChartData} />
         </div>
       </div>
-
       {/* Recent Transactions */}
       <div className="bg-white p-6 rounded-lg shadow-md">
         <h2 className="text-lg font-semibold mb-4">Recent Transactions</h2>

@@ -7,12 +7,13 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { FiMoon, FiSun } from "react-icons/fi";
+import { FiMoon, FiSun, FiEye, FiEyeOff } from "react-icons/fi";
 
 const LoginPage = () => {
   const { isLoaded, isSignedIn, user } = useUser();
   const [darkMode, setDarkMode] = useState(false);
   const [isPageLoaded, setIsPageLoaded] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
 
   // Handle page load
@@ -43,6 +44,10 @@ const LoginPage = () => {
   const toggleTheme = () => {
     setDarkMode(!darkMode);
     localStorage.setItem("loginTheme", darkMode ? "light" : "dark");
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   // Show loading state until Clerk has loaded
@@ -158,15 +163,28 @@ const LoginPage = () => {
                   <Clerk.Label className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                     Password
                   </Clerk.Label>
-                  <Clerk.Input
-                    type="password"
-                    required
-                    className={`p-3 rounded-md ${
-                      darkMode 
-                        ? 'bg-gray-700 text-white ring-1 ring-gray-600 focus:ring-blue-500' 
-                        : 'bg-gray-50 ring-1 ring-gray-300 focus:ring-blue-500'
-                    } focus:outline-none transition-all duration-300`}
-                  />
+                  <div className="relative">
+                    <Clerk.Input
+                      type={showPassword ? "text" : "password"}
+                      required
+                      className={`p-3 pr-12 rounded-md w-full ${
+                        darkMode 
+                          ? 'bg-gray-700 text-white ring-1 ring-gray-600 focus:ring-blue-500' 
+                          : 'bg-gray-50 ring-1 ring-gray-300 focus:ring-blue-500'
+                      } focus:outline-none transition-all duration-300`}
+                    />
+                    <button
+                      type="button"
+                      onClick={togglePasswordVisibility}
+                      className={`absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-md transition-colors duration-200 ${
+                        darkMode 
+                          ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-600' 
+                          : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+                    </button>
+                  </div>
                   <Clerk.FieldError className="text-xs text-red-400" />
                 </Clerk.Field>
               </motion.div>

@@ -153,14 +153,14 @@ const AttendanceForm = ({
       }
     );
 
-    if (result.success) {
+    if (result && result.success) {
       setProcessedStudents(prev => [...prev, studentId]);
       toast.success(`Marked ${status.toLowerCase()}`);
     } else {
-      toast.error(result.message || "Failed to mark attendance");
+      toast.error(result?.message || "Failed to mark attendance");
       setErrorState({ 
-        message: result.message || "An error occurred", 
-        details: result.details 
+        message: result?.message || "An error occurred", 
+        details: result?.details 
       });
     }
   };
