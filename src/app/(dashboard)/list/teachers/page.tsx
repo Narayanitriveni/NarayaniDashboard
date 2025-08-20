@@ -1,6 +1,5 @@
 import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
-import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import SortDropdown from "@/components/SortDropdown";
 import prisma from "@/lib/prisma";
@@ -21,87 +20,7 @@ const TeacherListPage = async (
   const session = await auth();
   const sessionClaims = session.sessionClaims;
   const role = (sessionClaims?.metadata as { role?: string })?.role;
-  const columns = [
-    {
-      header: "Info",
-      accessor: "info",
-    },
-    {
-      header: "Teacher ID",
-      accessor: "teacherId",
-      className: "hidden md:table-cell",
-    },
-    {
-      header: "Subjects",
-      accessor: "subjects",
-      className: "hidden md:table-cell",
-    },
-    {
-      header: "Classes",
-      accessor: "classes",
-      className: "hidden md:table-cell",
-    },
-    {
-      header: "Phone",
-      accessor: "phone",
-      className: "hidden lg:table-cell",
-    },
-    {
-      header: "Address",
-      accessor: "address",
-      className: "hidden lg:table-cell",
-    },
-    ...(role === "admin"
-      ? [
-          {
-            header: "Actions",
-            accessor: "action",
-          },
-        ]
-      : []),
-  ];
-
-  const renderRow = (item: TeacherList) => (
-    <tr
-      key={item.id}
-      className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
-    >
-      <td className="flex items-center gap-4 p-4">
-        <Image
-          src={item.img || "/noAvatar.png"}
-          alt=""
-          width={40}
-          height={40}
-          className="md:hidden xl:block w-10 h-10 rounded-full object-cover"
-        />
-        <div className="flex flex-col">
-          <h3 className="font-semibold">{item.name}</h3>
-          <p className="text-xs text-gray-500">{item?.email}</p>
-        </div>
-      </td>
-      <td className="hidden md:table-cell">{item.teacherId}</td>
-      <td className="hidden md:table-cell">
-        {item.subjects.map((subject) => subject.name).join(",")}
-      </td>
-      <td className="hidden md:table-cell">
-        {item.classes.map((classItem) => classItem.name).join(",")}
-      </td>
-      <td className="hidden md:table-cell">{item.phone}</td>
-      <td className="hidden md:table-cell">{item.address}</td>
-      <td>
-        <div className="flex items-center gap-2">
-          <Link href={`/list/teachers/${item.id}`}>
-            <button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaSky">
-              <Image src="/view.png" alt="" width={16} height={16} />
-            </button>
-          </Link>
-          {role === "admin" && (
-            <FormContainer table="teacher" type="delete" id={item.id} />
-          )}
-        </div>
-      </td>
-    </tr>
-  );
+  // Mobile-first card layout - no need for table columns
   const { page, sort, direction, ...queryParams } = searchParams;
 
   const p = page ? parseInt(page) : 1;
@@ -166,25 +85,120 @@ const TeacherListPage = async (
   ];
 
   return (
-    <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
-      {/* TOP */}
-      <div className="flex items-center justify-between">
-        <h1 className="hidden md:block text-lg font-semibold">All Teachers</h1>
-        <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
-          <TableSearch />
-          <div className="flex items-center gap-4 self-end">
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              <Image src="/filter.png" alt="" width={14} height={14} />
-            </button>
-            <SortDropdown options={sortOptions} defaultSort="name" />
-            {role === "admin" && <FormContainer table="teacher" type="create" />}
+    <div className="min-h-screen bg-gray-50">
+      {/* Mobile-first responsive layout */}
+      <div className="p-4 sm:p-6 space-y-6">
+        {/* HEADER SECTION */}
+        <div className="bg-white rounded-2xl sm:rounded-xl p-4 sm:p-6 shadow-sm border border-gray-100">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-800">All Teachers</h1>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+              <TableSearch />
+              <div className="flex items-center gap-3 sm:gap-4">
+                <button className="p-3 sm:p-2 rounded-xl sm:rounded-lg bg-lamaYellow hover:bg-lamaYellow/90 transition-colors touch-manipulation shadow-sm">
+                  <Image src="/filter.png" alt="Filter" width={16} height={16} className="sm:w-3.5 sm:h-3.5" />
+                </button>
+                <SortDropdown options={sortOptions} defaultSort="name" />
+                {role === "admin" && <FormContainer table="teacher" type="create" />}
+              </div>
+            </div>
           </div>
         </div>
+
+        {/* TEACHERS LIST - Mobile Card Layout */}
+        <div className="space-y-4">
+          {data.map((item) => (
+            <div
+              key={item.id}
+              className="bg-white rounded-2xl sm:rounded-xl p-4 sm:p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
+            >
+              {/* Teacher Info Card */}
+              <div className="flex items-start gap-4 mb-4">
+                <Image
+                  src={item.img || "/noAvatar.png"}
+                  alt={item.name}
+                  width={60}
+                  height={60}
+                  className="w-15 h-15 sm:w-12 sm:h-12 rounded-full object-cover flex-shrink-0"
+                />
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-lg sm:text-base text-gray-800 mb-1">{item.name}</h3>
+                  <p className="text-sm text-gray-500 mb-2">{item.email}</p>
+                  <p className="text-sm text-gray-600 font-medium">ID: {item.teacherId}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Link href={`/list/teachers/${item.id}`}>
+                    <button className="p-3 sm:p-2 rounded-xl sm:rounded-lg bg-lamaSky hover:bg-lamaSky/90 transition-colors touch-manipulation shadow-sm">
+                      <Image src="/view.png" alt="View" width={16} height={16} className="sm:w-4 sm:h-4" />
+                    </button>
+                  </Link>
+                  {role === "admin" && (
+                    <FormContainer table="teacher" type="delete" id={item.id} />
+                  )}
+                </div>
+              </div>
+
+              {/* Additional Details - Mobile Optimized */}
+              <div className="space-y-3 sm:space-y-2">
+                {/* Subjects */}
+                {item.subjects.length > 0 && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-xs sm:text-sm font-medium text-gray-500 min-w-16">Subjects:</span>
+                    <div className="flex flex-wrap gap-1">
+                      {item.subjects.map((subject, index) => (
+                        <span
+                          key={subject.id}
+                          className="inline-block px-2 py-1 text-xs bg-lamaSkyLight text-lamaSky rounded-lg"
+                        >
+                          {subject.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Classes */}
+                {item.classes.length > 0 && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-xs sm:text-sm font-medium text-gray-500 min-w-16">Classes:</span>
+                    <div className="flex flex-wrap gap-1">
+                      {item.classes.map((classItem, index) => (
+                        <span
+                          key={classItem.id}
+                          className="inline-block px-2 py-1 text-xs bg-lamaPurpleLight text-lamaPurple rounded-lg"
+                        >
+                          {classItem.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Contact Info */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 pt-2 border-t border-gray-100">
+                  {item.phone && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs sm:text-sm text-gray-500">📞</span>
+                      <span className="text-sm text-gray-700">{item.phone}</span>
+                    </div>
+                  )}
+                  {item.address && (
+                    <div className="flex items-start gap-2">
+                      <span className="text-xs sm:text-sm text-gray-500 mt-0.5">📍</span>
+                      <span className="text-sm text-gray-700 flex-1">{item.address}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* PAGINATION - Mobile Optimized */}
+        <div className="bg-white rounded-2xl sm:rounded-xl p-4 shadow-sm border border-gray-100">
+          <Pagination page={p} count={count} />
+        </div>
       </div>
-      {/* LIST */}
-      <Table columns={columns} renderRow={renderRow} data={data} />
-      {/* PAGINATION */}
-      <Pagination page={p} count={count} />
     </div>
   );
 };

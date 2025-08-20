@@ -318,7 +318,7 @@ const TeacherPage = async () => {
         </div>
 
         {/* Announcements */}
-        <Announcements />
+        <Announcements/>
       </div>
     </div>
   );

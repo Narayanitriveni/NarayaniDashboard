@@ -1,6 +1,9 @@
+"use client";
+
 import { currentUser } from "@clerk/nextjs/server";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const menuItems = [
   {
@@ -134,59 +137,68 @@ const menuItems = [
       },
     ],
   },
-  {
-    title: "",
-    items: [
-      // {
-      //   icon: "/profile.png",
-      //   label: "Profile",
-      //   href: "/profile",
-      //   visible: ["admin", "teacher", "student", "parent"],
-      // },
-      // {
-      //   icon: "/setting.png",
-      //   label: "Settings",
-      //   href: "/settings",
-      //   visible: ["admin", "teacher", "student", "parent"],
-      // },
-      // {
-      //   icon: "/logout.png",
-      //   label: "Logout",
-      //   href: "/logout",
-      //   visible: ["admin", "teacher", "student", "parent"],
-      // },
-    ],
-  },
 ];
 
-const Menu = async () => {
-  const user = await currentUser();
-  const role = user?.publicMetadata.role as string;
+const MobileMenu = ({ user, onClose }: { user: { fullName?: string; role?: string }; onClose: () => void }) => {
+  const router = useRouter();
+  const role = user?.role;
+
+  const handleNavigation = (href: string) => {
+    onClose();
+    router.push(href);
+  };
+
   return (
-    <div className="hidden lg:block mt-4 text-sm">
-      {menuItems.map((i) => (
-        <div className="flex flex-col gap-2" key={i.title}>
-          <span className="hidden lg:block text-gray-400 font-light my-4">
-            {i.title}
-          </span>
-          {i.items.map((item) => {
-            if (item.visible.includes(role)) {
-              return (
-                <Link
-                  href={item.href}
-                  key={item.label}
-                  className={`flex items-center justify-center lg:justify-start gap-4 text-gray-500 py-2 md:px-2 rounded-md ${item.color}`}
-                >
-                  <Image src={item.icon} alt="" width={20} height={20} />
-                  <span className="hidden lg:block">{item.label}</span>
-                </Link>
-              );
-            }
-          })}
+    <div className="h-full flex flex-col bg-white">
+      {/* HEADER */}
+      <div className="p-6 border-b border-gray-100">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-800">{user?.fullName}</h2>
+            <p className="text-sm text-gray-500 capitalize">{role}</p>
+          </div>
+          <button 
+            onClick={onClose}
+            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
-      ))}
+      </div>
+
+      {/* MENU ITEMS */}
+      <div className="flex-1 overflow-y-auto p-4">
+        {menuItems.map((section) => (
+          <div key={section.title} className="space-y-2">
+            {section.items.map((item) => {
+              if (item.visible.includes(role)) {
+                return (
+                  <button
+                    key={item.label}
+                    onClick={() => handleNavigation(item.href)}
+                    className={`w-full flex items-center gap-4 p-4 rounded-xl ${item.color} hover:shadow-md transition-all duration-200 touch-manipulation text-left`}
+                  >
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center ${item.color} shadow-sm`}>
+                      <Image 
+                        src={item.icon} 
+                        alt={item.label} 
+                        width={24} 
+                        height={24} 
+                        className="flex-shrink-0" 
+                      />
+                    </div>
+                    <span className="text-base font-medium text-gray-700">{item.label}</span>
+                  </button>
+                );
+              }
+            })}
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
 
-export default Menu;
+export default MobileMenu;
