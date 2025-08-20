@@ -173,7 +173,7 @@ const MobileMenu = ({ user, onClose }: { user: { fullName?: string; role?: strin
         {menuItems.map((section) => (
           <div key={section.title} className="space-y-2">
             {section.items.map((item) => {
-              if (item.visible.includes(role)) {
+              if (role && item.visible.includes(role)) {
                 return (
                   <button
                     key={item.label}
