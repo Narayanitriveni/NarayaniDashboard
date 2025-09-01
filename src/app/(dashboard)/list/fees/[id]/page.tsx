@@ -127,8 +127,12 @@ const FeeDetailsPage = async (
         <div className="bg-white rounded-md p-4">
           <h2 className="text-lg font-semibold mb-4">Fee Information</h2>
           <div className="space-y-2">
-            <p><span className="text-gray-500">Fee ID:</span> {fee.id}</p>
-            <p><span className="text-gray-500">Description:</span> {fee.description || "No description"}</p>
+                         <p><span className="text-gray-500">Fee ID:</span> {fee.id}</p>
+             <p><span className="text-gray-500">Category:</span>
+               <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800 ml-2">
+                 {fee.category}
+               </span>
+             </p>
             <p><span className="text-gray-500">Total Amount:</span> {Number(fee.totalAmount).toLocaleString()}</p>
             <p><span className="text-gray-500">Due Date:</span> {formatBSDate(new Date(fee.dueDate))}</p>
             <p>

@@ -31,7 +31,7 @@ const menuItems = [
         icon: "/parent.png",
         label: "Parents",
         href: "/list/parents",
-        visible: ["admin", "teacher","accountant"],
+        visible: ["admin"],
         color: "bg-yellow-50"
       },
       {

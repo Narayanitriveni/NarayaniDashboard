@@ -53,7 +53,7 @@ const AnnouncementListPage = async (
       accessor: "date",
       className: "hidden md:table-cell",
     },
-    ...(role === "admin"
+    ...(role === "admin" || role === "accountant"
       ? [
           {
             header: "Actions",
@@ -77,7 +77,7 @@ const AnnouncementListPage = async (
         <td className="hidden md:table-cell">{item.description}</td>
         <td>{item.class?.name || "-"}</td>
         <td className="hidden md:table-cell">{`${bsDate} ${time}`}</td>
-        {role === "admin" && (
+        {(role === "admin" || role === "accountant") && (
           <td>
             <div className="flex items-center gap-2">
               <FormContainer table="announcement" type="update" data={item} />
@@ -163,7 +163,7 @@ const AnnouncementListPage = async (
               <Image src="/filter.png" alt="" width={14} height={14} />
             </button>
             <SortDropdown options={sortOptions} defaultSort="date" />
-            {role === "admin" && (
+            {(role === "admin" || role === "accountant") && (
               <FormContainer table="announcement" type="create" />
             )}
           </div>

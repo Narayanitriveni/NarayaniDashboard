@@ -209,6 +209,12 @@ export type AccountantSchema = z.infer<typeof accountantSchema>;
 export const feeSchema = z.object({
   id: z.coerce.number().optional(),
   studentId: z.string().min(1, "Student is required"),
+  category: z.enum([
+    "PARENT_SUPPORT", "TUITION_FEE", "DEPOSIT_FEE", "ELECTRICITY_TRANSPORT",
+    "LIBRARY_FEE", "REGISTRATION_FEE", "IDENTITY_SPORTS", "EXAM_FEE_1",
+    "EXAM_FEE_2", "EXAM_FEE_3", "SEE_EXAM_FEE", "BUILDING_MISC_FEE",
+    "CERTIFICATE_FEE", "GRADE_SHEET", "TIE_BELT"
+  ], { required_error: "Fee category is required" }),
   totalAmount: z
     .union([
       z.coerce.number().positive("Amount must be positive"),
@@ -218,6 +224,7 @@ export const feeSchema = z.object({
   paidAmount: z.coerce.number().optional(),
   dueDate: z.coerce.date({ required_error: "Due date is required" }),
   status: z.enum(["PAID", "UNPAID", "PARTIAL", "OVERDUE", "WAIVED"]),
+  description: z.string().optional(),
 });
 
 export type FeeSchema = z.infer<typeof feeSchema>;
@@ -290,6 +297,12 @@ export type TeacherAttendanceSchema = z.infer<typeof teacherAttendanceSchema>;
 
 export const bulkFeeSchema = z.object({
   classId: z.coerce.number().min(1, "Class is required"),
+  category: z.enum([
+    "PARENT_SUPPORT", "TUITION_FEE", "DEPOSIT_FEE", "ELECTRICITY_TRANSPORT",
+    "LIBRARY_FEE", "REGISTRATION_FEE", "IDENTITY_SPORTS", "EXAM_FEE_1",
+    "EXAM_FEE_2", "EXAM_FEE_3", "SEE_EXAM_FEE", "BUILDING_MISC_FEE",
+    "CERTIFICATE_FEE", "GRADE_SHEET", "TIE_BELT"
+  ], { required_error: "Fee category is required" }),
   totalAmount: z.coerce.number().positive("Amount must be positive"),
   dueDate: z.coerce.date({ required_error: "Due date is required" }),
   description: z.string().optional(),

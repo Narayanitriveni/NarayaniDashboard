@@ -237,6 +237,38 @@ const FeeForm = ({
 
           <div className="w-full md:w-[48%]">
             <div className="flex flex-col gap-2">
+              <label className="text-xs text-gray-500">Fee Category *</label>
+              <select
+                className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+                {...register("category")}
+                defaultValue={data?.category || "TUITION_FEE"}
+              >
+                <option value="PARENT_SUPPORT">अभिभावक सहयोग (Parent Support)</option>
+                <option value="TUITION_FEE">शिक्षण शुल्कं (Tuition Fee)</option>
+                <option value="DEPOSIT_FEE">धरौटी शुल्क (Deposit Fee)</option>
+                <option value="ELECTRICITY_TRANSPORT">विद्युत/यातायात शुल्क (Electricity/Transport)</option>
+                <option value="LIBRARY_FEE">पुस्तकालय शुल्क (Library Fee)</option>
+                <option value="REGISTRATION_FEE">रजिष्ट्रेशन शुल्क (Registration Fee)</option>
+                <option value="IDENTITY_SPORTS">परिचय पत्र तथा खेलकुद (Identity & Sports)</option>
+                <option value="EXAM_FEE_1">। परीक्षा शुल्क (1st Term Exam)</option>
+                <option value="EXAM_FEE_2">|| परीक्षा शुल्क (2nd Term Exam)</option>
+                <option value="EXAM_FEE_3">||| परीक्षा शुल्क (3rd Term Exam)</option>
+                <option value="SEE_EXAM_FEE">SEE परीक्षा (SEE Exam)</option>
+                <option value="BUILDING_MISC_FEE">भवन एवं विविध शुल्क (Building & Misc)</option>
+                <option value="CERTIFICATE_FEE">प्रमाण पत्र शुल्क (Certificate Fee)</option>
+                <option value="GRADE_SHEET">लब्धाङ्क पत्र (Grade Sheet)</option>
+                <option value="TIE_BELT">टाई बेल्ट (Tie Belt)</option>
+              </select>
+              {errors.category?.message && (
+                <p className="text-xs text-red-400">
+                  {errors.category.message.toString()}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="w-full md:w-[48%]">
+            <div className="flex flex-col gap-2">
               <label className="text-xs text-gray-500">Due Date</label>
               <BikramSambatDatePicker onDateSelect={handleDueDateSelect} />
               {errors.dueDate?.message && (
@@ -269,6 +301,16 @@ const FeeForm = ({
             </div>
           </div>
         </div>
+
+        <InputField
+          label="Description (Optional)"
+          name="description"
+          type="text"
+          defaultValue={data?.description ?? ""}
+          register={register}
+          error={errors?.description}
+          inputProps={{ placeholder: "Enter fee description..." }}
+        />
 
         {type === "update" && (
           <InputField

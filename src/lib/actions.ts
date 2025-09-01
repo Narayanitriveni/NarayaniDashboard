@@ -1660,12 +1660,14 @@ export const createFee = async (
     await prisma.fee.create({
       data: {
         studentId: data.studentId,
+        category: data.category,
         totalAmount: BigInt(data.totalAmount?.toString() ?? "0"),
         paidAmount: data.paidAmount
           ? BigInt(data.paidAmount.toString())
           : BigInt(0),
         dueDate: data.dueDate,
         status: status, // Use the status we determined above
+        description: data.description,
       },
     });
     return { success: true, error: false };
@@ -1752,10 +1754,12 @@ export const updateFee = async (
       where: { id: data.id },
       data: {
         studentId: data.studentId,
+        category: data.category,
         totalAmount: newTotalAmount,
         paidAmount: newPaidAmount,
         dueDate: data.dueDate,
         status: status,
+        description: data.description,
       },
     });
     return { success: true, error: false };
@@ -2510,7 +2514,7 @@ export const getNextGradeClasses = async (currentClassId: number) => {
 
 export const createBulkFees = async (
   currentState: CurrentState,
-  data: { classId: number; totalAmount: number; dueDate: Date; description?: string; year: number }
+  data: { classId: number; category: "PARENT_SUPPORT" | "TUITION_FEE" | "DEPOSIT_FEE" | "ELECTRICITY_TRANSPORT" | "LIBRARY_FEE" | "REGISTRATION_FEE" | "IDENTITY_SPORTS" | "EXAM_FEE_1" | "EXAM_FEE_2" | "EXAM_FEE_3" | "SEE_EXAM_FEE" | "BUILDING_MISC_FEE" | "CERTIFICATE_FEE" | "GRADE_SHEET" | "TIE_BELT"; totalAmount: number; dueDate: Date; description?: string; year: number }
 ): Promise<CurrentState> => {
   try {
     // Get all students enrolled in the class for the specified year
@@ -2545,11 +2549,12 @@ export const createBulkFees = async (
         tx.fee.create({
           data: {
             studentId: enrollment.student.id,
+            category: data.category,
             totalAmount: BigInt(data.totalAmount),
             paidAmount: BigInt(0),
             dueDate: data.dueDate,
             status: "UNPAID",
-            description: data.description || `Class fee for ${data.year}`
+            description: data.description || `${data.category} for ${data.year}`
           }
         })
       );

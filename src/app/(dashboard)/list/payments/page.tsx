@@ -180,7 +180,7 @@ const PaymentsListPage = async (
               <Image src="/filter.png" alt="" width={14} height={14} />
             </button>
             <SortDropdown options={sortOptions} defaultSort="date" />
-            {role === "admin" && <FormContainer table="payment" type="create" />}
+            {(role === "admin" || role === "accountant") && <FormContainer table="payment" type="create" />}
           </div>
         </div>
       </div>

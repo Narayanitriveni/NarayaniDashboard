@@ -33,11 +33,15 @@ export default function ReceiptPage(props: { params: { id: string } }) {
   ];
 
   const formatBSDate = (date: Date) => {
-    // Adjust for timezone by creating a new date with local timezone
-    const localDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    const bsDate = ADToBS(localDate.toISOString().split('T')[0]);
-    const [year, month, day] = bsDate.split('-').map(Number);
-    return `${nepaliMonths[month - 1]} ${day}, ${year}`;
+    // Get the date in local timezone and format as YYYY-MM-DD
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const dateString = `${year}-${month}-${day}`;
+    
+    const bsDate = ADToBS(dateString);
+    const [bsYear, bsMonth, bsDay] = bsDate.split('-').map(Number);
+    return `${nepaliMonths[bsMonth - 1]} ${bsDay}, ${bsYear}`;
   };
 
   useEffect(() => {
@@ -153,6 +157,28 @@ export default function ReceiptPage(props: { params: { id: string } }) {
   const currentEnrollment = fee?.student.enrollments.find(e => e.leftAt === null);
   const studentClass = currentEnrollment?.class;
 
+  // Function to convert fee category enum to Hindi
+  const getCategoryInHindi = (category: string) => {
+    const categoryMap: { [key: string]: string } = {
+      'PARENT_SUPPORT': 'अभिभावक सहयोग',
+      'TUITION_FEE': 'शिक्षण शुल्कं',
+      'DEPOSIT_FEE': 'धरौटी शुल्क',
+      'ELECTRICITY_TRANSPORT': 'विद्युत/यातायात शुल्क',
+      'LIBRARY_FEE': 'पुस्तकालय शुल्क',
+      'REGISTRATION_FEE': 'रजिष्ट्रेशन शुल्क',
+      'IDENTITY_SPORTS': 'परिचय पत्र तथा खेलकुद',
+      'EXAM_FEE_1': '। परीक्षा शुल्क',
+      'EXAM_FEE_2': '|| परीक्षा शुल्क',
+      'EXAM_FEE_3': '||| परीक्षा शुल्क',
+      'SEE_EXAM_FEE': 'SEE परीक्षा',
+      'BUILDING_MISC_FEE': 'भवन एवं विविध शुल्क',
+      'CERTIFICATE_FEE': 'प्रमाण पत्र शुल्क',
+      'GRADE_SHEET': 'लब्धाङ्क पत्र',
+      'TIE_BELT': 'टाई बेल्ट'
+    };
+    return categoryMap[category] || category;
+  };
+
   // Move the receipt content to a separate component for reuse
   const ReceiptContent = () => (
     <div
@@ -223,9 +249,9 @@ export default function ReceiptPage(props: { params: { id: string } }) {
             <p className="text-xs text-gray-600">
               <span className="font-medium">Fee ID:</span> {fee.id}
             </p>
-            <p className="text-xs text-gray-600">
-              <span className="font-medium">Description:</span> {fee.description || 'N/A'}
-            </p>
+                         <p className="text-xs text-gray-600">
+               <span className="font-medium">Category:</span> {getCategoryInHindi(fee.category)}
+             </p>
             <p className="text-xs text-gray-600">
               <span className="font-medium">Due Date:</span> {formatBSDate(new Date(fee.dueDate))}
             </p>

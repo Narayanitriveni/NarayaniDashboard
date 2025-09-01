@@ -28,6 +28,8 @@ const sortOptions = [
   { label: "Amount (Low-High)", value: "amount", direction: "asc" as const },
   { label: "Student (A-Z)", value: "student.name", direction: "asc" as const },
   { label: "Student (Z-A)", value: "student.name", direction: "desc" as const },
+  { label: "Category (A-Z)", value: "category", direction: "asc" as const },
+  { label: "Category (Z-A)", value: "category", direction: "desc" as const },
 ];
 
 const FeesListPage = async (
@@ -83,6 +85,7 @@ const FeesListPage = async (
   const columns = [
     { header: "Student", accessor: "student" },
     { header: "Class", accessor: "class" },
+    { header: "Category", accessor: "category" },
     { header: "Amount", accessor: "amount" },
     { header: "Due Amount", accessor: "dueAmount" },
     { header: "Due Date", accessor: "dueDate" },
@@ -117,6 +120,11 @@ const FeesListPage = async (
         <td className="p-4">{`${fee.student.name} ${fee.student.surname}`}</td>
         <td>
           {currentClass ? currentClass.name : "N/A"}
+        </td>
+        <td>
+          <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+            {fee.category}
+          </span>
         </td>
         <td>{Number(fee.totalAmount).toLocaleString()}</td>
         <td>{Number(fee.totalAmount - fee.paidAmount).toLocaleString()}</td>

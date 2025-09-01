@@ -12,6 +12,7 @@ import SortDropdown from "@/components/SortDropdown";
 import TableSearch from "@/components/TableSearch";
 import StudentDeleteButton from "@/components/StudentDeleteButton";
 import StudentMultiTransfer from '@/components/StudentMultiTransfer';
+import PrintStudentList from '@/components/PrintStudentList';
 
 const ClassDetailPage = async (props: { params: { id: string }, searchParams?: { year?: string } }) => {
   const { id } = props.params;
@@ -345,6 +346,11 @@ const ClassDetailPage = async (props: { params: { id: string }, searchParams?: {
             <YearFilter currentYear={currentYear} years={yearOptions} />
             <TableSearch placeholder="Search students..." />
             <SortDropdown options={studentSortOptions} defaultSort="name" />
+            <PrintStudentList 
+              students={enrollments.map(e => e.student)} 
+              className={classData.name}
+              currentYear={currentYear}
+            />
             {role === "admin" && (
               <FormContainer table="student" type="create" data={{ classId: classData.id }} />
             )}

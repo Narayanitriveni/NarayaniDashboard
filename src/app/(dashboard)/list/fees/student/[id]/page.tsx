@@ -124,6 +124,7 @@ const StudentFeesPage = async (
             <thead>
               <tr className="border-b">
                 <th className="text-left py-2 px-4">Fee ID</th>
+                <th className="text-left py-2 px-4">Category</th>
                 <th className="text-left py-2 px-4">Description</th>
                 <th className="text-left py-2 px-4">Total Amount</th>
                 <th className="text-left py-2 px-4">Paid Amount</th>
@@ -136,6 +137,11 @@ const StudentFeesPage = async (
               {student.fees.map((fee) => (
                 <tr key={fee.id} className="border-b hover:bg-gray-50">
                   <td className="py-2 px-4">{fee.id}</td>
+                  <td className="py-2 px-4">
+                    <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                      {fee.category}
+                    </span>
+                  </td>
                   <td className="py-2 px-4">{fee.description || "No description"}</td>
                   <td className="py-2 px-4">{Number(fee.totalAmount).toLocaleString()}</td>
                   <td className="py-2 px-4">{calculateTotalPaid(fee.payments).toLocaleString()}</td>
