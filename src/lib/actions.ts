@@ -1812,6 +1812,7 @@ export const createPayment = async (
             date: data.date,
             reference: uniqueReference,
             transactionId: data.transactionId || null,
+            category: data.category,
           },
         });
 
@@ -1882,6 +1883,7 @@ export const updatePayment = async (
           date: data.date,
           reference: data.reference,
           transactionId: data.transactionId || null,
+          category: data.category,
         },
       });
       // 3. Calculate difference and update fee

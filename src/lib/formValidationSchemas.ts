@@ -237,7 +237,13 @@ export const paymentSchema = z.object({
   }),
   date: z.coerce.date({ required_error: "Payment date is required" }),
   reference: z.string().optional(),
-  transactionId: z.string().optional()
+  transactionId: z.string().optional(),
+  category: z.enum([
+    "PARENT_SUPPORT", "TUITION_FEE", "DEPOSIT_FEE", "ELECTRICITY_TRANSPORT",
+    "LIBRARY_FEE", "REGISTRATION_FEE", "IDENTITY_SPORTS", "EXAM_FEE_1",
+    "EXAM_FEE_2", "EXAM_FEE_3", "SEE_EXAM_FEE", "BUILDING_MISC_FEE",
+    "CERTIFICATE_FEE", "GRADE_SHEET", "TIE_BELT"
+  ], { required_error: "Payment category is required" })
 }).superRefine((val, ctx) => {
   if (["CARD", "BANK_TRANSFER","UPI"].includes(val.method) && !val.transactionId) {
     ctx.addIssue({

@@ -12,6 +12,27 @@ import Image from "next/image";
 import Link from "next/link";
 import { ADToBS } from "bikram-sambat-js";
 
+const getCategoryInHindi = (category: string) => {
+  const categoryMap: { [key: string]: string } = {
+    'PARENT_SUPPORT': 'अभिभावक सहयोग',
+    'TUITION_FEE': 'शिक्षण शुल्कं',
+    'DEPOSIT_FEE': 'धरौटी शुल्क',
+    'ELECTRICITY_TRANSPORT': 'विद्युत/यातायात शुल्क',
+    'LIBRARY_FEE': 'पुस्तकालय शुल्क',
+    'REGISTRATION_FEE': 'रजिष्ट्रेशन शुल्क',
+    'IDENTITY_SPORTS': 'परिचय पत्र तथा खेलकुद',
+    'EXAM_FEE_1': '। परीक्षा शुल्क',
+    'EXAM_FEE_2': '|| परीक्षा शुल्क',
+    'EXAM_FEE_3': '||| परीक्षा शुल्क',
+    'SEE_EXAM_FEE': 'SEE परीक्षा',
+    'BUILDING_MISC_FEE': 'भवन एवं विविध शुल्क',
+    'CERTIFICATE_FEE': 'प्रमाण पत्र शुल्क',
+    'GRADE_SHEET': 'लब्धाङ्क पत्र',
+    'TIE_BELT': 'टाई बेल्ट'
+  };
+  return categoryMap[category] || category;
+};
+
 type FeeWithRelations = Fee & {
   student: Student & { 
     enrollments: {
@@ -73,6 +94,7 @@ const FeesListPage = async (
             query.OR = [
               { student: { name: { contains: value, mode: "insensitive" } } },
               { student: { StudentId: { contains: value, mode: "insensitive" } } },
+              { category: { contains: value, mode: "insensitive" } },
             ];
             break;
           default:
@@ -122,8 +144,25 @@ const FeesListPage = async (
           {currentClass ? currentClass.name : "N/A"}
         </td>
         <td>
-          <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
-            {fee.category}
+          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+            fee.category === 'PARENT_SUPPORT' ? 'bg-blue-100 text-blue-800' :
+            fee.category === 'TUITION_FEE' ? 'bg-green-100 text-green-800' :
+            fee.category === 'DEPOSIT_FEE' ? 'bg-purple-100 text-purple-800' :
+            fee.category === 'ELECTRICITY_TRANSPORT' ? 'bg-yellow-100 text-yellow-800' :
+            fee.category === 'LIBRARY_FEE' ? 'bg-indigo-100 text-indigo-800' :
+            fee.category === 'REGISTRATION_FEE' ? 'bg-pink-100 text-pink-800' :
+            fee.category === 'IDENTITY_SPORTS' ? 'bg-orange-100 text-orange-800' :
+            fee.category === 'EXAM_FEE_1' ? 'bg-red-100 text-red-800' :
+            fee.category === 'EXAM_FEE_2' ? 'bg-red-100 text-red-800' :
+            fee.category === 'EXAM_FEE_3' ? 'bg-red-100 text-red-800' :
+            fee.category === 'SEE_EXAM_FEE' ? 'bg-red-100 text-red-800' :
+            fee.category === 'BUILDING_MISC_FEE' ? 'bg-gray-100 text-gray-800' :
+            fee.category === 'CERTIFICATE_FEE' ? 'bg-teal-100 text-teal-800' :
+            fee.category === 'GRADE_SHEET' ? 'bg-cyan-100 text-cyan-800' :
+            fee.category === 'TIE_BELT' ? 'bg-emerald-100 text-emerald-800' :
+            'bg-gray-100 text-gray-800'
+          }`}>
+            {getCategoryInHindi(fee.category)}
           </span>
         </td>
         <td>{Number(fee.totalAmount).toLocaleString()}</td>

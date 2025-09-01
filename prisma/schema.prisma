@@ -243,6 +243,7 @@ model Payment {
   date          DateTime      @default(now())
   method        PaymentMethod
   reference     String?
+  category      FeeCategory   @default(TUITION_FEE)
   feeId         Int
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
