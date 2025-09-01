@@ -33,6 +33,52 @@ const getCategoryInHindi = (category: string) => {
   return categoryMap[category] || category;
 };
 
+const getCategorySearchQuery = (searchValue: string) => {
+  const searchLower = searchValue.toLowerCase();
+  const matchingCategories: string[] = [];
+  
+  // Check if search value matches any Hindi text or English enum
+  if (searchLower.includes('अभिभावक') || searchLower.includes('parent') || searchLower.includes('support')) {
+    matchingCategories.push('PARENT_SUPPORT');
+  }
+  if (searchLower.includes('शिक्षण') || searchLower.includes('tuition')) {
+    matchingCategories.push('TUITION_FEE');
+  }
+  if (searchLower.includes('धरौटी') || searchLower.includes('deposit')) {
+    matchingCategories.push('DEPOSIT_FEE');
+  }
+  if (searchLower.includes('विद्युत') || searchLower.includes('यातायात') || searchLower.includes('electricity') || searchLower.includes('transport')) {
+    matchingCategories.push('ELECTRICITY_TRANSPORT');
+  }
+  if (searchLower.includes('पुस्तकालय') || searchLower.includes('library')) {
+    matchingCategories.push('LIBRARY_FEE');
+  }
+  if (searchLower.includes('रजिष्ट्रेशन') || searchLower.includes('registration')) {
+    matchingCategories.push('REGISTRATION_FEE');
+  }
+  if (searchLower.includes('परिचय') || searchLower.includes('खेलकुद') || searchLower.includes('identity') || searchLower.includes('sports')) {
+    matchingCategories.push('IDENTITY_SPORTS');
+  }
+  if (searchLower.includes('परीक्षा') || searchLower.includes('exam')) {
+    matchingCategories.push('EXAM_FEE_1', 'EXAM_FEE_2', 'EXAM_FEE_3', 'SEE_EXAM_FEE');
+  }
+  if (searchLower.includes('भवन') || searchLower.includes('विविध') || searchLower.includes('building') || searchLower.includes('misc')) {
+    matchingCategories.push('BUILDING_MISC_FEE');
+  }
+  if (searchLower.includes('प्रमाण') || searchLower.includes('पत्र') || searchLower.includes('certificate')) {
+    matchingCategories.push('CERTIFICATE_FEE');
+  }
+  if (searchLower.includes('लब्धाङ्क') || searchLower.includes('grade') || searchLower.includes('sheet')) {
+    matchingCategories.push('GRADE_SHEET');
+  }
+  if (searchLower.includes('टाई') || searchLower.includes('बेल्ट') || searchLower.includes('tie') || searchLower.includes('belt')) {
+    matchingCategories.push('TIE_BELT');
+  }
+  
+  // Return category filter if we found matches
+  return matchingCategories.length > 0 ? [{ category: { in: matchingCategories } }] : [];
+};
+
 type FeeWithRelations = Fee & {
   student: Student & { 
     enrollments: {
@@ -94,7 +140,9 @@ const FeesListPage = async (
             query.OR = [
               { student: { name: { contains: value, mode: "insensitive" } } },
               { student: { StudentId: { contains: value, mode: "insensitive" } } },
-              { category: { contains: value, mode: "insensitive" } },
+              // For enum fields, we need to check if the search value matches any category
+              // We'll search in the Hindi translations and map back to enum values
+              ...(value ? getCategorySearchQuery(value) : []),
             ];
             break;
           default:
