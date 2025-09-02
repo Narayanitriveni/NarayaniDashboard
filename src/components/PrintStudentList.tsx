@@ -9,13 +9,9 @@ interface Student {
   name: string;
   surname: string;
   StudentId: string;
-  email?: string | null;
+  fatherName?: string | null;
+  motherName?: string | null;
   phone?: string | null;
-  parent?: {
-    name?: string | null;
-    surname?: string | null;
-    phone?: string | null;
-  } | null;
 }
 
 interface PrintStudentListProps {
@@ -107,22 +103,20 @@ export default function PrintStudentList({ students, className, currentYear }: P
                   <th>Sr. No.</th>
                   <th>Student ID</th>
                   <th>Name</th>
-                  <th>Email</th>
-                  <th>Phone</th>
-                  <th>Parent Name</th>
-                  <th>Parent Phone</th>
+                  <th>Father&apos;s Name</th>
+                  <th>Mother&apos;s Name</th>
+                  <th>Phone Number</th>
                 </tr>
               </thead>
               <tbody>
                 ${students.map((student, index) => `
                   <tr>
                     <td>${index + 1}</td>
-                    <td>${student.StudentId || 'N/A'}</td>
+                    <td>${student.StudentId || ''}</td>
                     <td>${student.name} ${student.surname}</td>
-                    <td>${student.email || 'N/A'}</td>
-                    <td>${student.phone || 'N/A'}</td>
-                    <td>${student.parent ? `${student.parent.name || ''} ${student.parent.surname || ''}`.trim() || 'N/A' : 'N/A'}</td>
-                    <td>${student.parent?.phone || 'N/A'}</td>
+                    <td>${student.fatherName || ''}</td>
+                    <td>${student.motherName || ''}</td>
+                    <td>${student.phone || ''}</td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -179,27 +173,20 @@ export default function PrintStudentList({ students, className, currentYear }: P
                 <th>Sr. No.</th>
                 <th>Student ID</th>
                 <th>Name</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>Parent Name</th>
-                <th>Parent Phone</th>
+                                  <th>Father&apos;s Name</th>
+                  <th>Mother&apos;s Name</th>
+                <th>Phone Number</th>
               </tr>
             </thead>
             <tbody>
               {students.map((student, index) => (
                 <tr key={student.id}>
                   <td>{index + 1}</td>
-                  <td>{student.StudentId || 'N/A'}</td>
+                  <td>{student.StudentId || ''}</td>
                   <td>{student.name} {student.surname}</td>
-                  <td>{student.email || 'N/A'}</td>
-                  <td>{student.phone || 'N/A'}</td>
-                  <td>
-                    {student.parent 
-                      ? `${student.parent.name || ''} ${student.parent.surname || ''}`.trim() || 'N/A'
-                      : 'N/A'
-                    }
-                  </td>
-                  <td>{student.parent?.phone || 'N/A'}</td>
+                  <td>{student.fatherName || ''}</td>
+                  <td>{student.motherName || ''}</td>
+                  <td>{student.phone || ''}</td>
                 </tr>
               ))}
             </tbody>
