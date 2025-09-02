@@ -86,11 +86,13 @@ const StudentForm = ({
       if (!isNaN(adDate.getTime()) && year >= 1913 && year <= 2043) {
         const bsDate = ADToBS(adDate.toISOString().split('T')[0]);
         setBsBirthday(bsDate);
+        // Ensure react-hook-form has the birthday value pre-set on edit
+        setValue('birthday', adDate);
       } else {
         setBsBirthday("");
       }
     }
-  }, [data]);
+  }, [data, setValue]);
 
   // Handle BS date change
   const handleBSDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -145,7 +147,10 @@ const StudentForm = ({
   const { grades, classes } = relatedData;
 
   return (
+    <div className="relative bg-white rounded-lg p-6 max-h-[80vh] overflow-y-auto">
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
+      {/* Hidden field to pass internal student id on update */}
+      <input type="hidden" {...register("id")} defaultValue={data?.id} />
       <h1 className="text-xl font-semibold">
         {type === "create" ? "Create a new student" : "Update the student"}
       </h1>
@@ -367,11 +372,11 @@ const StudentForm = ({
                 id: number;
                 name: string;
                 capacity: number;
-                _count: { students: number };
+                _count?: { students?: number };
               }) => (
                 <option value={classItem.id} key={classItem.id}>
                   ({classItem.name} -{" "}
-                  {classItem._count.students + "/" + classItem.capacity}{" "}
+                  {(classItem._count?.students ?? 0) + "/" + classItem.capacity}{" "}
                   Capacity)
                 </option>
               )
@@ -386,9 +391,9 @@ const StudentForm = ({
           <select
             className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
             {...register("year")}
-            defaultValue={data?.year || 2081}
+            defaultValue={data?.year || 2082}
           >
-            {Array.from({ length: 21 }, (_, i) => 2070 + i).map(year => (
+            {Array.from({ length: 21 }, (_, i) => 2080 + i).map(year => (
               <option value={year} key={year}>
                 {year}
               </option>
@@ -413,6 +418,7 @@ const StudentForm = ({
           : "Update"}
       </button>
     </form>
+    </div>
   );
 };
 

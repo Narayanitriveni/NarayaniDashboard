@@ -485,7 +485,7 @@ export const createStudent = async (
   data: StudentSchema
 ): Promise<CurrentState> => {
   try {
-    const { parentId, password, email, ...studentData } = data;
+    const { parentId, password, email, gradeId, classId, year, ...studentData } = data;
     
     // Create user in Clerk first
     const user = await (await clerkClient()).users.createUser({
@@ -510,13 +510,47 @@ export const createStudent = async (
       // Create student in database with Clerk user ID
       const newStudent = await prisma.student.create({
         data: {
-          id: user.id, // Use Clerk user ID
-          ...studentData,
-          StudentId: studentData.StudentId || "", // Ensure StudentId is always a string
-          parentId: parent?.id || null, // Ensure parentId is either a valid ID or null
+          id: user.id,
+          username: studentData.username,
+          name: studentData.name,
+          surname: studentData.surname,
+          email: email || null,
+          phone: studentData.phone || null,
+          address: studentData.address,
+          img: studentData.img || null,
+          bloodType: studentData.bloodType,
+          sex: studentData.sex,
+          parentId: parent?.id || null,
           birthday: data.birthday || null,
+          StudentId: studentData.StudentId || "",
+          IEMISCODE: studentData.IEMISCODE,
+          disability: studentData.disability,
+          fatherName: studentData.fatherName,
+          motherName: studentData.motherName,
         },
       });
+
+      // Create initial enrollment for the student
+      if (studentData.StudentId && classId && gradeId && year) {
+        await prisma.enrollment.upsert({
+          where: {
+            studentId_year: {
+              studentId: studentData.StudentId,
+              year: year,
+            },
+          },
+          create: {
+            studentId: studentData.StudentId,
+            classId: classId,
+            gradeId: gradeId,
+            year: year,
+          },
+          update: {
+            classId: classId,
+            gradeId: gradeId,
+          },
+        });
+      }
 
       return { success: true, error: false };
     } catch (prismaError: any) {
@@ -557,15 +591,26 @@ export const updateStudent = async (
     };
   }
   try {
-    const { parentId, password, email, ...studentData } = data;
-    
-    // Update user in Clerk first
-    await (await clerkClient()).users.updateUser(data.id, {
-      username: studentData.username,
-      firstName: studentData.name,
-      lastName: studentData.surname,
-      ...(password && password !== "" && { password }),
-    });
+    const { parentId, password, email, gradeId, classId, year, ...studentData } = data;
+
+    // Try updating Clerk; if user does not exist there, log and continue with DB update
+    try {
+      await (await clerkClient()).users.updateUser(data.id, {
+        username: studentData.username,
+        firstName: studentData.name,
+        lastName: studentData.surname,
+        ...(password && password !== "" && { password }),
+      });
+    } catch (clerkErr: any) {
+      // If Clerk user is missing (e.g., Prisma-only CUID), ignore and proceed
+      const status = clerkErr?.status || clerkErr?.code;
+      const code = clerkErr?.errors?.[0]?.code;
+      if (status === 404 || code === "resource_not_found") {
+        console.warn("Clerk user not found for id; proceeding with DB-only update:", data.id);
+      } else {
+        console.error("Clerk update failed; proceeding with DB update:", clerkErr);
+      }
+    }
 
     try {
       // Find parent if parentId is provided
@@ -575,38 +620,70 @@ export const updateStudent = async (
         },
       });
 
-      // Update student in database
-      const updatedStudent = await prisma.student.update({
+      // Update student in database (only Student fields)
+      await prisma.student.update({
         where: {
           id: data.id,
         },
         data: {
-          ...studentData,
-          StudentId: studentData.StudentId || "", // Ensure StudentId is always a string
-          parentId: parent?.id || null, // Ensure parentId is either a valid ID or null
+          username: studentData.username,
+          name: studentData.name,
+          surname: studentData.surname,
+          email: email || null,
+          phone: studentData.phone || null,
+          address: studentData.address,
+          img: studentData.img || null,
+          bloodType: studentData.bloodType,
+          sex: studentData.sex,
+          parentId: parent?.id || null,
           birthday: data.birthday || null,
+          StudentId: studentData.StudentId || "",
+          IEMISCODE: studentData.IEMISCODE,
+          disability: studentData.disability,
+          fatherName: studentData.fatherName,
+          motherName: studentData.motherName,
         },
       });
+
+      // Upsert enrollment for the provided academic year
+      if (studentData.StudentId && year && classId && gradeId) {
+        await prisma.enrollment.upsert({
+          where: {
+            studentId_year: {
+              studentId: studentData.StudentId,
+              year: year,
+            },
+          },
+          create: {
+            studentId: studentData.StudentId,
+            classId: classId,
+            gradeId: gradeId,
+            year: year,
+          },
+          update: {
+            classId: classId,
+            gradeId: gradeId,
+          },
+        });
+      }
 
       return { success: true, error: false };
     } catch (prismaError: any) {
       console.error("Prisma error in updateStudent:", prismaError);
-      
-      return { 
-        success: false, 
-        error: true, 
+      return {
+        success: false,
+        error: true,
         message: prismaError.message,
-        details: [{ message: prismaError.message || "Unknown error" }]
+        details: [{ message: prismaError.message || "Unknown error" }],
       };
     }
-  } catch (clerkError: any) {
-    console.error("Clerk error in updateStudent:", clerkError);
-    
-    return { 
-      success: false, 
-      error: true, 
-      message: clerkError.message,
-      details: clerkError.errors || [{ message: clerkError.message || "Unknown error" }]
+  } catch (err: any) {
+    console.error("Unexpected error in updateStudent:", err);
+    return {
+      success: false,
+      error: true,
+      message: err.message || "Failed to update student",
+      details: [{ message: err.message || "Unknown error" }],
     };
   }
 };
