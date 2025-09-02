@@ -89,7 +89,7 @@ const StudentListPage = async (
           className="md:hidden xl:block w-10 h-10 rounded-full object-cover"
         />
         <div className="flex flex-col">
-          <h3 className="font-semibold">{item.student.name}</h3>
+          <h3 className="font-semibold">{item.student.name} {item.student.surname}</h3>
           <p className="text-xs text-gray-500">{item.class.name}</p>
         </div>
       </td>

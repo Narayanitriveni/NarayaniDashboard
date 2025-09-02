@@ -2644,3 +2644,79 @@ export const transferSelectedStudents = async (enrollmentIds: string[], destinat
     return { success: false, error: true, message: err?.message || "Failed to transfer students" };
   }
 };
+
+// Function to get all student attendance data for printing (no pagination)
+export const getAllStudentAttendanceForPrint = async () => {
+  try {
+    const allAttendance = await prisma.attendance.findMany({
+      include: {
+        student: {
+          include: {
+            enrollments: {
+              include: {
+                class: true
+              },
+              where: {
+                leftAt: null
+              },
+              orderBy: {
+                joinedAt: 'desc'
+              },
+              take: 1
+            }
+          }
+        },
+        lesson: true,
+      },
+      orderBy: {
+        date: 'desc'
+      }
+    });
+
+    return { 
+      success: true, 
+      error: false, 
+      data: allAttendance 
+    };
+  } catch (err: any) {
+    console.error("Error fetching all student attendance:", err);
+    return { 
+      success: false, 
+      error: true, 
+      message: err.message || "Failed to fetch student attendance data" 
+    };
+  }
+};
+
+// Function to get all teacher attendance data for printing (no pagination)
+export const getAllTeacherAttendanceForPrint = async () => {
+  try {
+    const allTeacherAttendance = await prisma.teacherAttendance.findMany({
+      include: {
+        teacher: {
+          select: {
+            id: true,
+            name: true,
+            surname: true
+          }
+        }
+      },
+      orderBy: {
+        date: 'desc'
+      }
+    });
+
+    return { 
+      success: true, 
+      error: false, 
+      data: allTeacherAttendance 
+    };
+  } catch (err: any) {
+    console.error("Error fetching all teacher attendance:", err);
+    return { 
+      success: false, 
+      error: true, 
+      message: err.message || "Failed to fetch teacher attendance data" 
+    };
+  }
+};

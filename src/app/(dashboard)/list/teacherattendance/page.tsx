@@ -2,6 +2,7 @@ import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
+import PrintAttendance from "@/components/PrintAttendance";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { TeacherAttendance, Teacher } from "@prisma/client";
@@ -199,15 +200,19 @@ const TeacherAttendanceListPage = async (
       {/* --- End Summary Cards --- */}
       <div className="flex items-center justify-between">
         <h1 className="hidden md:block text-lg font-semibold">Teacher Attendance</h1>
-        <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
-          <TableSearch />
-          <SortDropdown options={sortOptions} defaultSort="date" />
-          <div className="flex items-center gap-4 self-end">
-            {role === "admin" && (
-              <FormContainer table="teacherattendance" type="create" />
-            )}
+                  <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+            <TableSearch />
+            <SortDropdown options={sortOptions} defaultSort="date" />
+            <div className="flex items-center gap-4 self-end">
+              {role === "admin" && (
+                <FormContainer table="teacherattendance" type="create" />
+              )}
+              <PrintAttendance 
+                type="teacher"
+                currentYear={new Date().getFullYear().toString()}
+              />
+            </div>
           </div>
-        </div>
       </div>
       <Table columns={columns} renderRow={renderRow} data={data} />
       <Pagination page={p} count={count} />

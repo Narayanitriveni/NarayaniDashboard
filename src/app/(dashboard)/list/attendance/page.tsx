@@ -3,6 +3,7 @@ import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import SortDropdown from "@/components/SortDropdown";
+import PrintAttendance from "@/components/PrintAttendance";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Attendance, Student, Class, Lesson } from "@prisma/client";
@@ -74,7 +75,7 @@ const AttendanceListPage = async (
   const formatBSDate = (date: Date) => {
     const bsDate = ADToBS(date.toISOString().split('T')[0]);
     const [year, month, day] = bsDate.split('-').map(Number);
-    return `${nepaliMonths[month - 1]} ${day-1}, ${year}`;
+    return `${nepaliMonths[month - 1]} ${day}, ${year}`;
   };
 
   const columns = [
@@ -235,18 +236,22 @@ const AttendanceListPage = async (
       {/* --- End Summary Cards --- */}
       <div className="flex items-center justify-between">
         <h1 className="hidden md:block text-lg font-semibold">Attendance Records</h1>
-        <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
-          <TableSearch />
-          <div className="flex items-center gap-4 self-end">
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              <Image src="/filter.png" alt="" width={14} height={14} />
-            </button>
-            <SortDropdown options={sortOptions} defaultSort="date" />
-            {(role === "admin" || role === "teacher") && (
-              <FormContainer table="attendance" type="create" />
-            )}
+                  <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+            <TableSearch />
+            <div className="flex items-center gap-4 self-end">
+              <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
+                <Image src="/filter.png" alt="" width={14} height={14} />
+              </button>
+              <SortDropdown options={sortOptions} defaultSort="date" />
+              {(role === "admin" || role === "teacher") && (
+                <FormContainer table="attendance" type="create" />
+              )}
+              <PrintAttendance 
+                type="student"
+                currentYear={new Date().getFullYear().toString()}
+              />
+            </div>
           </div>
-        </div>
       </div>
 
       <Table columns={columns} renderRow={renderRow} data={data} />
