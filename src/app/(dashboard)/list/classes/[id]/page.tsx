@@ -13,6 +13,8 @@ import TableSearch from "@/components/TableSearch";
 import StudentDeleteButton from "@/components/StudentDeleteButton";
 import StudentMultiTransfer from '@/components/StudentMultiTransfer';
 import PrintStudentList from '@/components/PrintStudentList';
+import CreateFeesFromTemplateButton from '@/components/CreateFeesFromTemplateButton';
+import FeeStructureTemplates from '@/components/FeeStructureTemplates';
 
 const ClassDetailPage = async (props: { params: { id: string }, searchParams?: { year?: string } }) => {
   const { id } = props.params;
@@ -74,6 +76,11 @@ const ClassDetailPage = async (props: { params: { id: string }, searchParams?: {
     include: {
       student: {
         include: { parent: true }
+      }
+    },
+    orderBy: {
+      student: {
+        name: 'asc' // Sort students by name alphabetically
       }
     }
   });
@@ -452,6 +459,19 @@ const ClassDetailPage = async (props: { params: { id: string }, searchParams?: {
           <div className="text-center py-8 text-gray-500">No lessons scheduled for this class</div>
         )}
       </div>
+
+      {/* Fee Structure Management - At the bottom */}
+      {role === "admin" && (
+        <div className="bg-white p-6 rounded-md shadow-sm">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold text-gray-800">Fee Structure Management</h2>
+            <CreateFeesFromTemplateButton 
+              classId={classData.id} 
+            />
+          </div>
+          <FeeStructureTemplates classId={classData.id} year={currentYear ? parseInt(currentYear) : undefined} />
+        </div>
+      )}
     </div>
   );
 };

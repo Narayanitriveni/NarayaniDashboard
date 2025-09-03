@@ -333,3 +333,21 @@ export const bulkFeeSchema = z.object({
 });
 
 export type BulkFeeSchema = z.infer<typeof bulkFeeSchema>;
+
+export const classFeeStructureSchema = z.object({
+  id: z.coerce.number().optional(),
+  classId: z.coerce.number().min(1, "Class is required"),
+  year: z.coerce.number().min(2080, { message: "Year must be 2080 or later!" }).max(2090, { message: "Year must be 2090 or earlier!" }),
+  category: z.enum([
+    "PARENT_SUPPORT", "PARENT_SUPPORT_MONTHLY", "TUITION_FEE", "DEPOSIT_FEE", "ELECTRICITY_TRANSPORT",
+    "LIBRARY_FEE", "REGISTRATION_FEE", "IDENTITY_SPORTS", "EXAM_FEE_1",
+    "EXAM_FEE_2", "EXAM_FEE_3", "EXAM_FEE_4", "SEE_EXAM_FEE", "BUILDING_MISC_FEE",
+    "CERTIFICATE_FEE", "GRADE_SHEET", "TIE_BELT"
+  ], { required_error: "Fee category is required" }),
+  amount: z.coerce.number().positive("Amount must be positive").transform(val => Math.round(val * 100)), // Convert rupees to paisa
+  dueDate: z.coerce.date().optional(),
+  dueDaysOffset: z.coerce.number().min(0, "Days offset must be 0 or greater").optional(),
+  description: z.string().optional(),
+});
+
+export type ClassFeeStructureSchema = z.infer<typeof classFeeStructureSchema>;

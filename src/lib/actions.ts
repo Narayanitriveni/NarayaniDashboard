@@ -19,6 +19,7 @@ import {
   AttendanceSchema,
   FinanceSchema,
   BulkFeeSchema,
+  ClassFeeStructureSchema,
 } from "./formValidationSchemas";
 import prisma from "./prisma";
 import { clerkClient } from "@clerk/nextjs/server";
@@ -551,6 +552,9 @@ export const createStudent = async (
           },
         });
       }
+
+      // Automatically create fees from ClassFeeStructure
+      await createStudentFeesFromTemplate(newStudent.id, classId, year);
 
       return { success: true, error: false };
     } catch (prismaError: any) {
@@ -2676,6 +2680,7 @@ export const createBulkFees = async (
         tx.fee.create({
           data: {
             studentId: enrollment.student.id,
+            classId: data.classId, // Add classId
             category: data.category,
             totalAmount: BigInt(data.totalAmount),
             paidAmount: BigInt(0),
@@ -2842,6 +2847,283 @@ export const getAllTeacherAttendanceForPrint = async () => {
       success: false, 
       error: true, 
       message: err.message || "Failed to fetch teacher attendance data" 
+    };
+  }
+};
+
+// Helper function to create student fees from ClassFeeStructure template
+export const createStudentFeesFromTemplate = async (
+  studentId: string,
+  classId: number,
+  year: number
+): Promise<void> => {
+  try {
+    // Get fee structure template for the class and year
+    const feeTemplates = await prisma.classFeeStructure.findMany({
+      where: {
+        classId: classId,
+        year: year,
+      },
+    });
+
+    if (feeTemplates.length === 0) {
+      console.log(`No fee templates found for class ${classId}, year ${year}`);
+      return;
+    }
+
+    // Create fees for each template
+    const feePromises = feeTemplates.map(template => {
+      let dueDate: Date;
+      
+      if (template.dueDate) {
+        // Use fixed due date from template
+        dueDate = template.dueDate;
+      } else if (template.dueDaysOffset !== null) {
+        // Calculate due date based on offset
+        dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + template.dueDaysOffset);
+      } else {
+        // Default to 30 days from now
+        dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + 30);
+      }
+
+      return prisma.fee.create({
+        data: {
+          studentId: studentId,
+          classId: classId,
+          category: template.category,
+          totalAmount: template.amount,
+          paidAmount: BigInt(0),
+          dueDate: dueDate,
+          status: "UNPAID",
+          description: template.description || `${template.category} for ${year}`,
+        },
+      });
+    });
+
+    await Promise.all(feePromises);
+    console.log(`Created ${feeTemplates.length} fees for student ${studentId}`);
+  } catch (error) {
+    console.error("Error creating student fees from template:", error);
+    throw error;
+  }
+};
+
+// Create or update ClassFeeStructure template
+export const createClassFeeStructure = async (
+  currentState: CurrentState,
+  data: ClassFeeStructureSchema
+): Promise<CurrentState> => {
+  try {
+    if (data.id) {
+      // Update existing template
+      await prisma.classFeeStructure.update({
+        where: { id: data.id },
+        data: {
+          classId: data.classId,
+          year: data.year,
+          category: data.category,
+          amount: BigInt(data.amount),
+          dueDate: data.dueDate || null,
+          dueDaysOffset: data.dueDaysOffset || null,
+          description: data.description || null,
+        },
+      });
+    } else {
+      // Create new template
+      await prisma.classFeeStructure.create({
+        data: {
+          classId: data.classId,
+          year: data.year,
+          category: data.category,
+          amount: BigInt(data.amount),
+          dueDate: data.dueDate || null,
+          dueDaysOffset: data.dueDaysOffset || null,
+          description: data.description || null,
+        },
+      });
+    }
+
+    return { success: true, error: false };
+  } catch (err: any) {
+    console.error("Error creating/updating class fee structure:", err);
+    return {
+      success: false,
+      error: true,
+      message: err.message || "An unexpected error occurred",
+      details: [{ message: err.message || "Unknown error" }],
+    };
+  }
+};
+
+// Bulk fee creation from ClassFeeStructure templates
+export const createBulkFeesFromTemplate = async (
+  currentState: CurrentState,
+  data: { classId: number; year: number; category?: string }
+): Promise<CurrentState> => {
+  try {
+    // Get all students enrolled in the class for the specified year
+    const enrollments = await prisma.enrollment.findMany({
+      where: {
+        classId: data.classId,
+        year: data.year,
+        leftAt: null // Only active students
+      },
+      include: {
+        student: {
+          select: {
+            id: true,
+            name: true,
+            surname: true
+          }
+        }
+      }
+    });
+
+    if (enrollments.length === 0) {
+      return {
+        success: false,
+        error: true,
+        message: "No students found in this class for the selected year"
+      };
+    }
+
+    // Get fee structure templates
+    const whereClause: any = {
+      classId: data.classId,
+      year: data.year,
+    };
+    
+    if (data.category) {
+      whereClause.category = data.category;
+    }
+
+    const feeTemplates = await prisma.classFeeStructure.findMany({
+      where: whereClause,
+    });
+
+    if (feeTemplates.length === 0) {
+      return {
+        success: false,
+        error: true,
+        message: "No fee templates found for this class and year"
+      };
+    }
+
+    // Create fees for all students in a transaction
+    await prisma.$transaction(async (tx) => {
+      for (const enrollment of enrollments) {
+        for (const template of feeTemplates) {
+          // Check if fee already exists for this student and category
+          const existingFee = await tx.fee.findFirst({
+            where: {
+              studentId: enrollment.student.id,
+              classId: data.classId,
+              category: template.category,
+            },
+          });
+
+          if (!existingFee) {
+            let dueDate: Date;
+            
+            if (template.dueDate) {
+              dueDate = template.dueDate;
+            } else if (template.dueDaysOffset !== null) {
+              dueDate = new Date();
+              dueDate.setDate(dueDate.getDate() + template.dueDaysOffset);
+            } else {
+              dueDate = new Date();
+              dueDate.setDate(dueDate.getDate() + 30);
+            }
+
+            await tx.fee.create({
+              data: {
+                studentId: enrollment.student.id,
+                classId: data.classId,
+                category: template.category,
+                totalAmount: template.amount,
+                paidAmount: BigInt(0),
+                dueDate: dueDate,
+                status: "UNPAID",
+                description: template.description || `${template.category} for ${data.year}`,
+              },
+            });
+          }
+        }
+      }
+    }, {
+      timeout: 30000 // 30 seconds timeout
+    });
+
+    return {
+      success: true,
+      error: false,
+      message: `Successfully created fees from templates for ${enrollments.length} students`
+    };
+  } catch (err: any) {
+    console.error("Error creating bulk fees from template:", err);
+    return {
+      success: false,
+      error: true,
+      message: err.message || "An unexpected error occurred",
+      details: [{ message: err.message || "Unknown error" }],
+    };
+  }
+};
+
+// Get ClassFeeStructure templates
+export const getClassFeeStructures = async (
+  classId?: number,
+  year?: number
+) => {
+  try {
+    const whereClause: any = {};
+    
+    if (classId) whereClause.classId = classId;
+    if (year) whereClause.year = year;
+
+    const templates = await prisma.classFeeStructure.findMany({
+      where: whereClause,
+      include: {
+        class: {
+          select: {
+            name: true,
+          },
+        },
+      },
+      orderBy: [
+        { classId: 'asc' },
+        { year: 'desc' },
+        { category: 'asc' },
+      ],
+    });
+
+    return templates;
+  } catch (error) {
+    console.error("Error fetching class fee structures:", error);
+    throw error;
+  }
+};
+
+// Delete ClassFeeStructure template
+export const deleteClassFeeStructure = async (
+  currentState: CurrentState,
+  id: number
+): Promise<CurrentState> => {
+  try {
+    await prisma.classFeeStructure.delete({
+      where: { id },
+    });
+
+    return { success: true, error: false };
+  } catch (err: any) {
+    console.error("Error deleting class fee structure:", err);
+    return {
+      success: false,
+      error: true,
+      message: err.message || "An unexpected error occurred",
+      details: [{ message: err.message || "Unknown error" }],
     };
   }
 };

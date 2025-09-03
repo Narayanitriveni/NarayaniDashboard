@@ -108,6 +108,8 @@ model Class {
   lessons       Lesson[]
   students      Enrollment[]
   exams         Exam[]
+  fees          Fee[]          // Add fees relation
+  feeStructures ClassFeeStructure[] // Add fee structures relation
 }
 
 model Subject {
@@ -224,6 +226,7 @@ model Accountant {
 model Fee {
   id          Int         @id @default(autoincrement())
   studentId   String
+  classId     Int?        // Make classId optional for now
   category    FeeCategory @default(TUITION_FEE)
   totalAmount BigInt
   paidAmount  BigInt      @default(0)
@@ -233,6 +236,7 @@ model Fee {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   student     Student     @relation(fields: [studentId], references: [id])
+  class       Class?      @relation(fields: [classId], references: [id]) // Make class relation optional
   payments    Payment[]
 }
 
@@ -257,6 +261,22 @@ model Finance {
   description String?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime
+}
+
+model ClassFeeStructure {
+  id            Int         @id @default(autoincrement())
+  classId       Int
+  year          Int         // Academic year (BS)
+  category      FeeCategory
+  amount        BigInt
+  dueDate       DateTime?   // Optional fixed due date
+  dueDaysOffset Int?        // Optional days offset from creation
+  description   String?
+  createdAt     DateTime    @default(now())
+  
+  class         Class       @relation(fields: [classId], references: [id], onDelete: Cascade)
+  
+  @@unique([classId, year, category])
 }
 
 enum UserSex {
