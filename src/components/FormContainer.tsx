@@ -269,12 +269,22 @@ export const FormContainer = async ({
               paidAmount: true,
               dueDate: true,
               status: true,
+              category: true,
               student: {
                 select: {
                   id: true,
                   name: true,
                   surname: true,
-                  StudentId: true
+                  StudentId: true,
+                  enrollments: {
+                    select: {
+                      class: {
+                        select: {
+                          name: true
+                        }
+                      }
+                    }
+                  }
                   // Removed class
                 }
               }

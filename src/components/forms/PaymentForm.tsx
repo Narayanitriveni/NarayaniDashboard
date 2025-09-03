@@ -24,6 +24,87 @@ const PaymentForm = ({
   setOpen: Dispatch<SetStateAction<boolean>>;
   relatedData?: any;
 }) => {
+  // Helper function to get category color classes
+  const getCategoryColor = (category: string | undefined | null) => {
+    if (!category) return "bg-gray-100 text-gray-800";
+    
+    switch (category) {
+      case "PARENT_SUPPORT":
+        return "bg-blue-100 text-blue-800";
+      case "TUITION_FEE":
+        return "bg-green-100 text-green-800";
+      case "DEPOSIT_FEE":
+        return "bg-purple-100 text-purple-800";
+      case "ELECTRICITY_TRANSPORT":
+        return "bg-yellow-100 text-yellow-800";
+      case "LIBRARY_FEE":
+        return "bg-indigo-100 text-indigo-800";
+      case "REGISTRATION_FEE":
+        return "bg-pink-100 text-pink-800";
+      case "IDENTITY_SPORTS":
+        return "bg-orange-100 text-orange-800";
+      case "EXAM_FEE_1":
+      case "EXAM_FEE_2":
+      case "EXAM_FEE_3":
+        return "bg-red-100 text-red-800";
+      case "SEE_EXAM_FEE":
+        return "bg-red-200 text-red-900";
+      case "BUILDING_MISC_FEE":
+        return "bg-gray-100 text-gray-800";
+      case "CERTIFICATE_FEE":
+        return "bg-teal-100 text-teal-800";
+      case "GRADE_SHEET":
+        return "bg-cyan-100 text-cyan-800";
+      case "TIE_BELT":
+        return "bg-amber-100 text-amber-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  // Helper function to get category label
+  const getCategoryLabel = (category: string | undefined | null) => {
+    if (!category) return "Unknown Category";
+    
+    switch (category) {
+      case "PARENT_SUPPORT":
+        return "Parent Support";
+      case "PARENT_SUPPORT_MONTHLY":
+        return "Parent Support Monthly";
+      case "TUITION_FEE":
+        return "Tuition Fee";
+      case "DEPOSIT_FEE":
+        return "Deposit Fee";
+      case "ELECTRICITY_TRANSPORT":
+        return "Electricity/Transport";
+      case "LIBRARY_FEE":
+        return "Library Fee";
+      case "REGISTRATION_FEE":
+        return "Registration Fee";
+      case "IDENTITY_SPORTS":
+        return "Identity & Sports";
+      case "EXAM_FEE_1":
+        return "Exam Fee I";
+      case "EXAM_FEE_2":
+        return "Exam Fee II";
+      case "EXAM_FEE_3":
+        return "Exam Fee III";
+      case "EXAM_FEE_4":
+        return "Exam Fee IV";
+      case "SEE_EXAM_FEE":
+        return "SEE Exam Fee";
+      case "BUILDING_MISC_FEE":
+        return "Building & Misc";
+      case "CERTIFICATE_FEE":
+        return "Certificate Fee";
+      case "GRADE_SHEET":
+        return "Grade Sheet";
+      case "TIE_BELT":
+        return "Tie Belt";
+      default:
+        return category;
+    }
+  };
   const {
     register,
     handleSubmit,
@@ -84,12 +165,10 @@ const PaymentForm = ({
   useEffect(() => {
     if (type === "update" && data?.feeId && fees.length > 0) {
       const found = fees.find((fee: any) => fee.id === data.feeId);
-      if (found) {
+      if (found && found.student) {
         setSelectedFee(found);
         setSearchTerm(
-          `${found.student.name} ${found.student.surname} (${
-            found.student.StudentId || "N/A"
-          })`
+          `${found.student.name || ""} ${found.student.surname || ""} (${found.student.StudentId || "N/A"}) - ${getCategoryLabel(found.category)}`
         );
         setValue("feeId", found.id);
         setIsDropdownOpen(false);
@@ -98,18 +177,22 @@ const PaymentForm = ({
   }, [type, data?.feeId, fees, setValue]);
 
   const filteredFees = fees.filter((fee: any) => {
-    const fullName = `${fee.student.name} ${fee.student.surname}`.toLowerCase();
+    // Safety check for fee and student data
+    if (!fee || !fee.student) return false;
+    
+    const fullName = `${fee.student.name || ""} ${fee.student.surname || ""}`.toLowerCase();
     const studentId = fee.student.StudentId?.toLowerCase() || "";
+    const category = getCategoryLabel(fee.category || "").toLowerCase();
     const searchLower = searchTerm.toLowerCase();
-    return fullName.includes(searchLower) || studentId.includes(searchLower);
+    return fullName.includes(searchLower) || studentId.includes(searchLower) || category.includes(searchLower);
   });
 
   const handleFeeSelect = (fee: any) => {
+    if (!fee || !fee.student) return;
+    
     setSelectedFee(fee);
     setSearchTerm(
-      `${fee.student.name} ${fee.student.surname} (${
-        fee.student.StudentId || "N/A"
-      })`
+      `${fee.student.name || ""} ${fee.student.surname || ""} (${fee.student.StudentId || "N/A"}) - ${getCategoryLabel(fee.category)}`
     );
     setValue("feeId", fee.id);
     setTimeout(() => setIsDropdownOpen(false), 100);
@@ -183,7 +266,7 @@ const PaymentForm = ({
               <input
                 type="text"
                 className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
-                placeholder="Search for student..."
+                placeholder="Search for student, ID, or fee category..."
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
@@ -199,34 +282,72 @@ const PaymentForm = ({
                       className="p-2 hover:bg-gray-100 cursor-pointer flex justify-between items-center"
                       onClick={() => handleFeeSelect(fee)}
                     >
-                      <div>
-                        <span>
-                          {fee.student.name} {fee.student.surname}
-                        </span>
-                        <span className="text-gray-500 text-sm ml-2">
-                          ID: {fee.student.StudentId || "N/A"}
-                        </span>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-medium">
+                            {fee.student?.name || ""} {fee.student?.surname || ""}
+                          </span>
+                          <span className="text-gray-500 text-sm">
+                            ID: {fee.student?.StudentId || "N/A"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-500">
+                            {fee.student?.enrollments?.[0]?.class?.name || "N/A"}
+                          </span>
+                          <span className={`text-xs px-2 py-1 rounded-full font-medium ${getCategoryColor(fee.category)}`}>
+                            {getCategoryLabel(fee.category)}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-500">
-                          {fee.student.class?.name}
-                        </span>
-                        <span className="text-green-600 font-semibold">
-                          {Number(
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-green-600 font-semibold text-sm">
+                          ₹{Number(
                             fee.totalAmount - fee.paidAmount
                           ).toLocaleString()}
                         </span>
+                        <span className="text-xs text-gray-500">
+                          Due
+                        </span>
+                        <div className="text-xs text-gray-400">
+                          <span>Total: ₹{Number(fee.totalAmount).toLocaleString()}</span>
+                          {Number(fee.paidAmount) > 0 && (
+                            <span className="ml-1">| Paid: ₹{Number(fee.paidAmount).toLocaleString()}</span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
               )}
               {selectedFee ? (
-                <input
-                  type="hidden"
-                  {...register("feeId")}
-                  value={selectedFee.id}
-                />
+                <>
+                  <input
+                    type="hidden"
+                    {...register("feeId")}
+                    value={selectedFee.id}
+                  />
+                  <div className="mt-2 p-2 bg-gray-50 rounded-md border">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-gray-900">
+                          {selectedFee.student?.name || ""} {selectedFee.student?.surname || ""}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          Class: {selectedFee.student?.enrollments?.[0]?.class?.name || "N/A"}
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end">
+                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${getCategoryColor(selectedFee.category)}`}>
+                          {getCategoryLabel(selectedFee.category)}
+                        </span>
+                        <span className="text-sm font-semibold text-green-600 mt-1">
+                          ₹{Number(selectedFee.totalAmount - selectedFee.paidAmount).toLocaleString()} due
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </>
               ) : (
                 <input type="hidden" {...register("feeId")} />
               )}
@@ -289,6 +410,7 @@ const PaymentForm = ({
                 defaultValue={data?.category || "TUITION_FEE"}
               >
                 <option value="PARENT_SUPPORT">अभिभावक सहयोग (Parent Support)</option>
+                <option value="PARENT_SUPPORT_MONTHLY">अभिभावक सहयोग मासिक (Parent Support Monthly)</option>
                 <option value="TUITION_FEE">शिक्षण शुल्कं (Tuition Fee)</option>
                 <option value="DEPOSIT_FEE">धरौटी शुल्क (Deposit Fee)</option>
                 <option value="ELECTRICITY_TRANSPORT">विद्युत/यातायात शुल्क (Electricity/Transport)</option>
@@ -298,6 +420,7 @@ const PaymentForm = ({
                 <option value="EXAM_FEE_1">। परीक्षा शुल्क (Exam Fee I)</option>
                 <option value="EXAM_FEE_2">|| परीक्षा शुल्क (Exam Fee II)</option>
                 <option value="EXAM_FEE_3">||| परीक्षा शुल्क (Exam Fee III)</option>
+                <option value="EXAM_FEE_4">|||| परीक्षा शुल्क (Exam Fee IV)</option>
                 <option value="SEE_EXAM_FEE">SEE परीक्षा (SEE Exam)</option>
                 <option value="BUILDING_MISC_FEE">भवन एवं विविध शुल्क (Building & Miscellaneous)</option>
                 <option value="CERTIFICATE_FEE">प्रमाण पत्र शुल्क (Certificate Fee)</option>

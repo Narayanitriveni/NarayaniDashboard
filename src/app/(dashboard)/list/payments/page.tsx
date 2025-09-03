@@ -14,6 +14,7 @@ import { ADToBS } from "bikram-sambat-js";
 const getCategoryInHindi = (category: string) => {
   const categoryMap: { [key: string]: string } = {
     'PARENT_SUPPORT': 'अभिभावक सहयोग',
+    'PARENT_SUPPORT_MONTHLY': 'अभिभावक सहयोग मासिक',
     'TUITION_FEE': 'शिक्षण शुल्कं',
     'DEPOSIT_FEE': 'धरौटी शुल्क',
     'ELECTRICITY_TRANSPORT': 'विद्युत/यातायात शुल्क',
@@ -23,6 +24,7 @@ const getCategoryInHindi = (category: string) => {
     'EXAM_FEE_1': '। परीक्षा शुल्क',
     'EXAM_FEE_2': '|| परीक्षा शुल्क',
     'EXAM_FEE_3': '||| परीक्षा शुल्क',
+    'EXAM_FEE_4': '|||| परीक्षा शुल्क',
     'SEE_EXAM_FEE': 'SEE परीक्षा',
     'BUILDING_MISC_FEE': 'भवन एवं विविध शुल्क',
     'CERTIFICATE_FEE': 'प्रमाण पत्र शुल्क',
@@ -39,6 +41,7 @@ const getCategorySearchQuery = (searchValue: string) => {
   // Check if search value matches any Hindi text or English enum
   if (searchLower.includes('अभिभावक') || searchLower.includes('parent') || searchLower.includes('support')) {
     matchingCategories.push('PARENT_SUPPORT');
+    matchingCategories.push('PARENT_SUPPORT_MONTHLY');
   }
   if (searchLower.includes('शिक्षण') || searchLower.includes('tuition')) {
     matchingCategories.push('TUITION_FEE');
@@ -59,7 +62,7 @@ const getCategorySearchQuery = (searchValue: string) => {
     matchingCategories.push('IDENTITY_SPORTS');
   }
   if (searchLower.includes('परीक्षा') || searchLower.includes('exam')) {
-    matchingCategories.push('EXAM_FEE_1', 'EXAM_FEE_2', 'EXAM_FEE_3', 'SEE_EXAM_FEE');
+    matchingCategories.push('EXAM_FEE_1', 'EXAM_FEE_2', 'EXAM_FEE_3', 'EXAM_FEE_4', 'SEE_EXAM_FEE');
   }
   if (searchLower.includes('भवन') || searchLower.includes('विविध') || searchLower.includes('building') || searchLower.includes('misc')) {
     matchingCategories.push('BUILDING_MISC_FEE');
@@ -146,6 +149,7 @@ const PaymentsListPage = async (
         <td>
           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
             payment.category === 'PARENT_SUPPORT' ? 'bg-blue-100 text-blue-800' :
+            payment.category === 'PARENT_SUPPORT_MONTHLY' ? 'bg-blue-100 text-blue-800' :
             payment.category === 'TUITION_FEE' ? 'bg-green-100 text-green-800' :
             payment.category === 'DEPOSIT_FEE' ? 'bg-purple-100 text-purple-800' :
             payment.category === 'ELECTRICITY_TRANSPORT' ? 'bg-yellow-100 text-yellow-800' :
@@ -155,6 +159,7 @@ const PaymentsListPage = async (
             payment.category === 'EXAM_FEE_1' ? 'bg-red-100 text-red-800' :
             payment.category === 'EXAM_FEE_2' ? 'bg-red-100 text-red-800' :
             payment.category === 'EXAM_FEE_3' ? 'bg-red-100 text-red-800' :
+            payment.category === 'EXAM_FEE_4' ? 'bg-red-100 text-red-800' :
             payment.category === 'SEE_EXAM_FEE' ? 'bg-red-100 text-red-800' :
             payment.category === 'BUILDING_MISC_FEE' ? 'bg-gray-100 text-gray-800' :
             payment.category === 'CERTIFICATE_FEE' ? 'bg-teal-100 text-teal-800' :

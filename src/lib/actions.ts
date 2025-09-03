@@ -695,28 +695,76 @@ export const deleteStudent = async (
   const id = data.get("id") as string;
 
   try {
-    // Get student info before deletion to clean up image
+    // Get student info before deletion to clean up image and get StudentId
     const student = await prisma.student.findUnique({
       where: { id: id },
-      select: { img: true }
+      select: { img: true, parentId: true, StudentId: true }
     });
 
-    await (await clerkClient()).users.deleteUser(id);
-    
-    const studentExists = await prisma.student.findUnique({
-      where: { id: id },
-    });
-    
-    if (!studentExists) {
+    if (!student) {
       console.error("Student not found in database:", id);
       return { success: false, error: true, message: "Student not found" };
     }
-    
-    await prisma.student.delete({
-      where: {
-        id: id,
-      },
+
+    // Delete all related records first in a transaction to ensure consistency
+    await prisma.$transaction(async (tx) => {
+      // Delete enrollments (using StudentId from the student record)
+      await tx.enrollment.deleteMany({
+        where: { studentId: student.StudentId }
+      });
+
+      // Delete attendances
+      await tx.attendance.deleteMany({
+        where: { studentId: id }
+      });
+
+      // Delete results
+      await tx.result.deleteMany({
+        where: { studentId: id }
+      });
+
+      // Delete fees (this will also delete related payments due to cascade)
+      await tx.fee.deleteMany({
+        where: { studentId: id }
+      });
+
+      // Delete payments (if any exist without fees)
+      await tx.payment.deleteMany({
+        where: { 
+          fee: { studentId: id }
+        }
+      });
+
+      // Check if parent has other students before potentially deleting
+      if (student.parentId) {
+        const parentStudentCount = await tx.student.count({
+          where: { parentId: student.parentId }
+        });
+        
+        // If this is the only student for this parent, remove the parent relationship
+        // but don't delete the parent record as it might be used elsewhere
+        if (parentStudentCount === 1) {
+          // Just remove the parent relationship, don't delete the parent
+          await tx.student.update({
+            where: { id: id },
+            data: { parentId: null }
+          });
+        }
+      }
+
+      // Delete the student record itself
+      await tx.student.delete({
+        where: { id: id }
+      });
     });
+
+    // Delete user from Clerk after successful database deletion
+    try {
+      await (await clerkClient()).users.deleteUser(id);
+    } catch (clerkError: any) {
+      console.warn("Failed to delete Clerk user:", clerkError);
+      // Continue with the process even if Clerk deletion fails
+    }
 
     // Clean up image from Cloudinary after successful deletion
     if (student?.img) {
@@ -726,11 +774,11 @@ export const deleteStudent = async (
     // revalidatePath("/list/students");
     return { success: true, error: false };
   } catch (error: any) {
-    console.error("Error deleting student:", error);
+    console.error("Error deleting student and relations:", error);
     return { 
       success: false, 
       error: true,
-      message: error.message || "Failed to delete student"
+      message: error.message || "Failed to delete student and relations"
     };
   }
 };
