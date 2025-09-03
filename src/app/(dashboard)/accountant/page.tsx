@@ -114,16 +114,54 @@ const AccountantDashboard = async () => {
     }
   });
 
+  // Import category utils for Nepali names
+  const { expenseCategoryNepali, incomeCategoryNepali } = await import('@/lib/categoryUtils');
+
   // Fetch expense distribution data
   const expenseDistribution = await prisma.finance.groupBy({
-    by: ['expenseType'],
+    by: ['type', 'expenseCategory', 'incomeCategory'],
     _sum: { amount: true },
+    where: {
+      type: "EXPENSE",
+      expenseCategory: { not: null }
+    }
   });
 
-  const expenseChartData = expenseDistribution.map(item => ({
-    name: item.expenseType.charAt(0).toUpperCase() + item.expenseType.slice(1).toLowerCase(),
-    value: Number(item._sum.amount ?? 0),
-  }));
+  const expenseChartData = expenseDistribution.map(item => {
+    // Get the category name - either from the Nepali mapping or format the enum
+    const categoryName = item.expenseCategory ? 
+      (expenseCategoryNepali[item.expenseCategory] || 
+        item.expenseCategory.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase())) : 
+      'Other';
+    
+    return {
+      name: categoryName,
+      value: Number(item._sum?.amount ?? 0),
+    };
+  });
+
+  // Fetch income distribution data
+  const incomeDistribution = await prisma.finance.groupBy({
+    by: ['type', 'incomeCategory'],
+    _sum: { amount: true },
+    where: {
+      type: "INCOME",
+      incomeCategory: { not: null }
+    }
+  });
+
+  const incomeChartData = incomeDistribution.map(item => {
+    // Get the category name - either from the Nepali mapping or format the enum
+    const categoryName = item.incomeCategory ? 
+      (incomeCategoryNepali[item.incomeCategory] || 
+        item.incomeCategory.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase())) : 
+      'Other';
+    
+    return {
+      name: categoryName,
+      value: Number(item._sum?.amount ?? 0),
+    };
+  });
 
   // Fetch recent transactions
   const recentPayments = await prisma.payment.findMany({
@@ -159,6 +197,37 @@ const AccountantDashboard = async () => {
         <div className="lg:col-span-2 bg-white p-6 rounded-lg shadow-md">
           <h2 className="text-lg font-semibold mb-4">Expense Distribution</h2>
           <ExpenseDistributionChart data={expenseChartData} />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="lg:col-span-2 bg-white p-6 rounded-lg shadow-md">
+          <h2 className="text-lg font-semibold mb-4">Income Distribution</h2>
+          <ExpenseDistributionChart data={incomeChartData} />
+        </div>
+        <div className="lg:col-span-3 bg-white p-6 rounded-lg shadow-md">
+          <h2 className="text-lg font-semibold mb-4">Financial Summary</h2>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-green-50 p-4 rounded-lg border border-green-100">
+              <h3 className="text-sm text-green-700 font-medium">कुल आय (Total Income)</h3>
+              <p className="text-xl font-bold text-green-800">₹{Number(revenue).toLocaleString()}</p>
+            </div>
+            <div className="bg-red-50 p-4 rounded-lg border border-red-100">
+              <h3 className="text-sm text-red-700 font-medium">कुल व्यय (Total Expense)</h3>
+              <p className="text-xl font-bold text-red-800">₹{Number(expenses).toLocaleString()}</p>
+            </div>
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+              <h3 className="text-sm text-blue-700 font-medium">बाँकी शुल्क (Outstanding Fees)</h3>
+              <p className="text-xl font-bold text-blue-800">₹{Number(outstanding).toLocaleString()}</p>
+            </div>
+            <div className={`p-4 rounded-lg border ${Number(revenue) > Number(expenses) ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'}`}>
+              <h3 className={`text-sm font-medium ${Number(revenue) > Number(expenses) ? 'text-green-700' : 'text-red-700'}`}>
+                {Number(revenue) > Number(expenses) ? 'लाभ (Profit)' : 'हानि (Loss)'}
+              </h3>
+              <p className={`text-xl font-bold ${Number(revenue) > Number(expenses) ? 'text-green-800' : 'text-red-800'}`}>
+                ₹{Math.abs(Number(revenue) - Number(expenses)).toLocaleString()}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
       {/* Recent Transactions */}
