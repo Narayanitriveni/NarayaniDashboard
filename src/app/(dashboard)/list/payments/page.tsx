@@ -108,9 +108,7 @@ const PaymentsListPage = async (
     { header: "Method", accessor: "method" },
     { header: "Date", accessor: "date" },
     { header: "Transaction ID", accessor: "transactionId" },
-    ...(role === "admin" || role === "accountant"
-      ? [{ header: "Actions", accessor: "actions" }]
-      : []),
+    { header: "Actions", accessor: "actions" },
   ];
 
   const renderRow = (payment: PaymentWithRelations) => {
@@ -173,15 +171,22 @@ const PaymentsListPage = async (
         <td>{Number(payment.amount).toLocaleString()}</td>
         <td>{payment.method}</td>
         <td>{`${nepaliMonths[month - 1]} ${day}, ${year}`}</td>
-        <td>{payment.transactionId || "N/A"}</td>
-        {(role === "admin" || role === "accountant") && (
+                  <td>{payment.transactionId || "N/A"}</td>
           <td>
             <div className="flex items-center gap-2">
-              <FormContainer table="payment" type="update" data={payment} />
-              <FormContainer table="payment" type="delete" id={payment.id} />
+              <Link href={`/list/fees/student/${payment.fee.studentId}`}>
+              <button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaSky">
+                  <Image src="/view.png" alt="" width={16} height={16} />
+                </button>
+              </Link>
+              {(role === "admin" || role === "accountant") && (
+                <>
+                  <FormContainer table="payment" type="update" data={payment} />
+                  <FormContainer table="payment" type="delete" id={payment.id} />
+                </>
+              )}
             </div>
           </td>
-        )}
       </tr>
     );
   };
