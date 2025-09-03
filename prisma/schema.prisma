@@ -256,11 +256,13 @@ model Payment {
 
 model Finance {
   id          Int         @id @default(autoincrement())
-  expenseType ExpenseType
+  type        TransactionType
+  expenseCategory ExpenseCategory? // Used when type is EXPENSE
+  incomeCategory  IncomeCategory?  // Used when type is INCOME
   amount      BigInt
   description String?
   createdAt   DateTime    @default(now())
-  updatedAt   DateTime
+  updatedAt   DateTime    @updatedAt
 }
 
 model ClassFeeStructure {
@@ -327,13 +329,94 @@ enum DisabilityType {
   OTHER
 }
 
-enum ExpenseType {
-  BUS
-  SALARY
-  MAINTENANCE
-  SUPPLIES
-  UTILITIES
-  OTHER
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum ExpenseCategory {
+  TEACHER_SALARY                // शिक्षक तलब भत्ता मा.वि., नि.मा.वि प्रा.वि./पोशाक
+  STAFF_SALARY                  // विद्यालय कर्मचारी तलब भत्ता/पोशाक
+  CHILD_DEV_TEACHER_SALARY      // वाल विकाश शिक्षक तलब भत्ता
+  LOCAL_TEACHER_SALARY          // गा.पा. शिक्षक तलव भत्ता
+  PROVIDENT_FUND               // क.सं. कोष
+  CITIZEN_INVESTMENT_FUND      // नागरिक लगानी कोष
+  TAX_DEDUCTION                // कर कट्टी १ र १०%
+  PRIVATE_TEACHER_SALARY       // निजि स्रोत शिक्षक तलव भत्ता
+  ADMIN_STATIONERY             // मसलन्द, प्रशासनिक, बुक कर्नर
+  SCHOLARSHIP                  // छात्रवृत्ति (२ आ.व.)
+  DAY_MEAL                     // दिवा खाजा
+  TEXTBOOKS                    // पाठ्यपुस्तक
+  PLAYGROUND                   // गाउापालिकाबाट खेलमैदान
+  TRUST_BUILDING_REPAIR        // टष्ट भवन मर्मत
+  EXAM_SECONDARY               // परिक्षा मा.वि.
+  ADMIN_EXAM_PLUS_TWO          // प्रशासनिक, परिक्षा +२
+  MAINTENANCE                  // मर्मत सम्भार
+  EDUCATIONAL_MATERIALS        // शैक्षिक सामग्री
+  BUILDING_CONSTRUCTION        // दुई तले ४ कोठे भवन निर्माण
+  AUDITING                     // लेखापरीक्षण
+  COLUMN_CONSTRUCTION          // स्तम्भ निर्माण
+  TOILET_CLEANING              // शौचालय सरसफाई
+  TELEPHONE_POST               // टेलिफोन हुलाक
+  LAND_REVENUE                 // मालपोत
+  TRACK_SUIT                   // ट्रेक सुट
+  SOUND_SYSTEM                 // साउण्ड सिस्टम उपकरण
+  ELECTRICITY                  // विद्युत
+  COMPUTER_MATERIALS           // कम्प्युटर सामग्री
+  STEM_LAB                     // स्टेम ल्याव
+  SARASWATI_PUJA               // सरस्वती पुजा
+  DAILY_TRAVEL                 // दैनिक भ्रमण खर्च
+  STATUE_CONSTRUCTION          // मुर्ति निर्माण
+  SPORTS                       // खेलकुद
+  LIABILITY                    // दायित्व
+  TIE_BELT                     // टाई बेल्ट
+  BUS_MANAGEMENT               // बस व्यवस्थापन तथा ईन्धन
+  EXCESS_REFUND                // निकासामा बढि छात्रवृत्ति तथा तलव फिर्ता
+  HOSPITALITY                  // अतिथि सत्कार (चियापान)
+  TEACHER_SELECTION            // शिक्षक छनौट खर्च
+}
+
+enum IncomeCategory {
+  OPENING_BALANCE_RASTRIYA_BANIJYA_BANK_PARASI      // अल्या रा.बा.बैंक लि. परासी ६७१
+  OPENING_BALANCE_RASTRIYA_BANIJYA_BANK_BARDAGHAT   // अल्या रा.बा. बैंक लि. बर्दघाट ३६५
+  OPENING_BALANCE_RASTRIYA_BANIJYA_BANK_TRIVENI     // अल्या रा.बा.बैंक लि. त्रिवेणी ९००६
+  OPENING_BALANCE_RASTRIYA_BANIJYA_BANK_TRIVENI_2   // अल्या राःबा. बैंक लि. त्रिवेणी ६३८००१
+  OPENING_BALANCE_KRISHI_BANK_BARDAGHAT            // अल्या कृषि वि. बैंक लि. बर्दघाट
+  OPENING_BALANCE_KRISHI_BANK_BARDAGHAT_FIXED      // अल्या कृषि वि. बैंक लि. बर्दघाट मुद्यती
+  OPENING_BALANCE_SIDDHARTHA_BANK_DUMKIWAS         // अल्या सिद्धार्थ बैंक लिमिटेड दुम्कीवास
+  OPENING_BALANCE_COOPERATIVE                      // अल्या सा.कि.कृ.स.सं.लि. (वा.वि.के)
+  OPENING_BALANCE_RAMESHCHANDRA_ADVANCE            // अल्या रमेशचन्द्र रौनियार पेश्की
+  OPENING_BALANCE_PRADIP_ADVANCE                   // अल्या प्रदिप कुमार चौधरी पेश्की
+  OPENING_BALANCE_CONSUMER_COMMITTEE               // अल्या उपभोक्ता समिति परासी, त्रिवेणी
+  OPENING_BALANCE_PREVIOUS_YEAR                    // मौज्दात (२०७७/०७८)
+  TEACHER_SALARY                                   // शिक्षक तलब भत्ता ( प्रा.वि, नि.मा.वि., मा.वि. राहत)
+  STAFF_SALARY                                     // विद्यालय कर्मचारी तलव भत्ता
+  CHILD_DEV_SALARY                                 // वाल विकाश तलब भत्ता
+  LOCAL_TEACHER_SALARY                             // गा.पा. शिक्षक तलब भत्ता
+  ADMIN_STATIONERY                                 // मसलन्द, प्रशासनिक, बुक कर्नर
+  SCHOLARSHIP                                      // छात्रवृती
+  DAY_MEAL                                         // दिवा खाजा
+  TEXTBOOKS                                        // पाठ्यपुस्तक
+  BUILDING_RECONSTRUCTION                          // रा. पुन निर्माण प्राधिकरण भवन निर्माण
+  LOCAL_PLAYGROUND_GRANT                           // गा.पा. खेलमैदान अनुदान
+  EARN_WHILE_LEARNING                              // पढ्‌दै कमाउदै कार्यक्रम
+  EXAM                                             // परीक्षा
+  BANK_INTEREST                                    // रा.वा.बैंक + सा.कि.सं.लि. व्याज
+  PARENT_SUPPORT                                   // अभिभावक सहयोग
+  CERTIFICATE                                      // प्रमाणपत्र
+  ENDOWMENT_FUND                                   // अक्षयकोष
+  NATIONAL_EXAM_BOARD                              // रा.प.बोर्ड बुटवल
+  STEM_LAB                                         // STEM LAB
+  GRADE_11_PARENT_SUPPORT                          // कक्षा ११ बाट अभिभावक सहयोग
+  GRADE_12_PARENT_SUPPORT                          // कक्षा १२ बाट अभिभावक सहयोग
+  ADVERTISEMENT                                    // विज्ञापनबाट
+  TIE_BELT                                         // टाई बेल्ट
+  TRANSPORTATION                                   // यातायात (बस)
+  MAGHE_MELA                                       // माघेमेलां
+  N_CELL                                           // एन. सेलबाट
+  YAGYA_SUPPORT                                    // यज्ञ सहयोग
+  ASSEMBLY_HALL                                    // सभाहल
+  PAPER_SALES                                      // कागज बिक्रीबाट
 }
 
 enum FeeCategory {

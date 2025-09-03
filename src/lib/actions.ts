@@ -2335,9 +2335,12 @@ export const createFinance = async (
   try {
     await prisma.finance.create({
       data: {
-        expenseType: data.expenseType,
+        type: data.type,
+        expenseCategory: data.type === "EXPENSE" ? data.expenseCategory : null,
+        incomeCategory: data.type === "INCOME" ? data.incomeCategory : null,
         amount: BigInt(data.amount.toString()),
         description: data.description,
+        createdAt: new Date(),
         updatedAt: new Date(),
       },
     });
@@ -2369,7 +2372,9 @@ export const updateFinance = async (
     await prisma.finance.update({
       where: { id: data.id },
       data: {
-        expenseType: data.expenseType,
+        type: data.type,
+        expenseCategory: data.type === "EXPENSE" ? data.expenseCategory : null,
+        incomeCategory: data.type === "INCOME" ? data.incomeCategory : null,
         amount: BigInt(data.amount.toString()),
         description: data.description,
         updatedAt: new Date(),

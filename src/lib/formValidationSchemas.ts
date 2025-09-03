@@ -287,12 +287,54 @@ export type AttendanceSchema = z.infer<typeof attendanceSchema>;
 
 export const financeSchema = z.object({
   id: z.coerce.number().optional(),
-  expenseType: z.enum(["BUS", "SALARY", "MAINTENANCE", "SUPPLIES", "UTILITIES", "OTHER"], {
-    required_error: "Expense type is required"
+  type: z.enum(["INCOME", "EXPENSE"], {
+    required_error: "Transaction type is required"
   }),
+  expenseCategory: z.enum([
+    "TEACHER_SALARY", "STAFF_SALARY", "CHILD_DEV_TEACHER_SALARY", "LOCAL_TEACHER_SALARY", 
+    "PROVIDENT_FUND", "CITIZEN_INVESTMENT_FUND", "TAX_DEDUCTION", "PRIVATE_TEACHER_SALARY", 
+    "ADMIN_STATIONERY", "SCHOLARSHIP", "DAY_MEAL", "TEXTBOOKS", "PLAYGROUND", 
+    "TRUST_BUILDING_REPAIR", "EXAM_SECONDARY", "ADMIN_EXAM_PLUS_TWO", "MAINTENANCE", 
+    "EDUCATIONAL_MATERIALS", "BUILDING_CONSTRUCTION", "AUDITING", "COLUMN_CONSTRUCTION", 
+    "TOILET_CLEANING", "TELEPHONE_POST", "LAND_REVENUE", "TRACK_SUIT", "SOUND_SYSTEM", 
+    "ELECTRICITY", "COMPUTER_MATERIALS", "STEM_LAB", "SARASWATI_PUJA", "DAILY_TRAVEL", 
+    "STATUE_CONSTRUCTION", "SPORTS", "LIABILITY", "TIE_BELT", "BUS_MANAGEMENT", 
+    "EXCESS_REFUND", "HOSPITALITY", "TEACHER_SELECTION"
+  ], {
+    required_error: "Expense category is required"
+  }).optional().nullable(),
+  incomeCategory: z.enum([
+    "OPENING_BALANCE_RASTRIYA_BANIJYA_BANK_PARASI", "OPENING_BALANCE_RASTRIYA_BANIJYA_BANK_BARDAGHAT", 
+    "OPENING_BALANCE_RASTRIYA_BANIJYA_BANK_TRIVENI", "OPENING_BALANCE_RASTRIYA_BANIJYA_BANK_TRIVENI_2", 
+    "OPENING_BALANCE_KRISHI_BANK_BARDAGHAT", "OPENING_BALANCE_KRISHI_BANK_BARDAGHAT_FIXED", 
+    "OPENING_BALANCE_SIDDHARTHA_BANK_DUMKIWAS", "OPENING_BALANCE_COOPERATIVE", 
+    "OPENING_BALANCE_RAMESHCHANDRA_ADVANCE", "OPENING_BALANCE_PRADIP_ADVANCE", 
+    "OPENING_BALANCE_CONSUMER_COMMITTEE", "OPENING_BALANCE_PREVIOUS_YEAR", "TEACHER_SALARY", 
+    "STAFF_SALARY", "CHILD_DEV_SALARY", "LOCAL_TEACHER_SALARY", "ADMIN_STATIONERY", 
+    "SCHOLARSHIP", "DAY_MEAL", "TEXTBOOKS", "BUILDING_RECONSTRUCTION", "LOCAL_PLAYGROUND_GRANT", 
+    "EARN_WHILE_LEARNING", "EXAM", "BANK_INTEREST", "PARENT_SUPPORT", "CERTIFICATE", 
+    "ENDOWMENT_FUND", "NATIONAL_EXAM_BOARD", "STEM_LAB", "GRADE_11_PARENT_SUPPORT", 
+    "GRADE_12_PARENT_SUPPORT", "ADVERTISEMENT", "TIE_BELT", "TRANSPORTATION", "MAGHE_MELA", 
+    "N_CELL", "YAGYA_SUPPORT", "ASSEMBLY_HALL", "PAPER_SALES"
+  ], {
+    required_error: "Income category is required"
+  }).optional().nullable(),
   amount: z.coerce.number().positive("Amount must be positive"),
   description: z.string().optional(),
-});
+}).refine(
+  (data) => {
+    if (data.type === "EXPENSE") {
+      return data.expenseCategory !== null && data.expenseCategory !== undefined;
+    } else if (data.type === "INCOME") {
+      return data.incomeCategory !== null && data.incomeCategory !== undefined;
+    }
+    return false;
+  },
+  {
+    message: "You must select a category based on transaction type",
+    path: ["type"]
+  }
+);
 
 export type FinanceSchema = z.infer<typeof financeSchema>;
 
