@@ -95,6 +95,7 @@ const BulkFeeForm = ({ classId, className, onSuccess }: BulkFeeFormProps) => {
             defaultValue="TUITION_FEE"
           >
             <option value="PARENT_SUPPORT">अभिभावक सहयोग (Parent Support)</option>
+            <option value="PARENT_SUPPORT_MONTHLY">अभिभावक सहयोग मासिक (Parent Support Monthly)</option>
             <option value="TUITION_FEE">शिक्षण शुल्कं (Tuition Fee)</option>
             <option value="DEPOSIT_FEE">धरौटी शुल्क (Deposit Fee)</option>
             <option value="ELECTRICITY_TRANSPORT">विद्युत/यातायात शुल्क (Electricity/Transport)</option>
@@ -104,6 +105,7 @@ const BulkFeeForm = ({ classId, className, onSuccess }: BulkFeeFormProps) => {
             <option value="EXAM_FEE_1">। परीक्षा शुल्क (1st Term Exam)</option>
             <option value="EXAM_FEE_2">|| परीक्षा शुल्क (2nd Term Exam)</option>
             <option value="EXAM_FEE_3">||| परीक्षा शुल्क (3rd Term Exam)</option>
+            <option value="EXAM_FEE_4">|||| परीक्षा शुल्क (4th Term Exam)</option>
             <option value="SEE_EXAM_FEE">SEE परीक्षा (SEE Exam)</option>
             <option value="BUILDING_MISC_FEE">भवन एवं विविध शुल्क (Building & Misc)</option>
             <option value="CERTIFICATE_FEE">प्रमाण पत्र शुल्क (Certificate Fee)</option>

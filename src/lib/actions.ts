@@ -2645,7 +2645,7 @@ export const getNextGradeClasses = async (currentClassId: number) => {
 
 export const createBulkFees = async (
   currentState: CurrentState,
-  data: { classId: number; category: "PARENT_SUPPORT" | "TUITION_FEE" | "DEPOSIT_FEE" | "ELECTRICITY_TRANSPORT" | "LIBRARY_FEE" | "REGISTRATION_FEE" | "IDENTITY_SPORTS" | "EXAM_FEE_1" | "EXAM_FEE_2" | "EXAM_FEE_3" | "SEE_EXAM_FEE" | "BUILDING_MISC_FEE" | "CERTIFICATE_FEE" | "GRADE_SHEET" | "TIE_BELT"; totalAmount: number; dueDate: Date; description?: string; year: number }
+  data: { classId: number; category: "PARENT_SUPPORT" | "PARENT_SUPPORT_MONTHLY" | "TUITION_FEE" | "DEPOSIT_FEE" | "ELECTRICITY_TRANSPORT" | "LIBRARY_FEE" | "REGISTRATION_FEE" | "IDENTITY_SPORTS" | "EXAM_FEE_1" | "EXAM_FEE_2" | "EXAM_FEE_3" | "EXAM_FEE_4" | "SEE_EXAM_FEE" | "BUILDING_MISC_FEE" | "CERTIFICATE_FEE" | "GRADE_SHEET" | "TIE_BELT"; totalAmount: number; dueDate: Date; description?: string; year: number }
 ): Promise<CurrentState> => {
   try {
     // Get all students enrolled in the class for the specified year

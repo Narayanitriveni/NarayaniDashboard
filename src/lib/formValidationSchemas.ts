@@ -227,9 +227,9 @@ export const feeSchema = z.object({
   id: z.coerce.number().optional(),
   studentId: z.string().min(1, "Student is required"),
   category: z.enum([
-    "PARENT_SUPPORT", "TUITION_FEE", "DEPOSIT_FEE", "ELECTRICITY_TRANSPORT",
+    "PARENT_SUPPORT", "PARENT_SUPPORT_MONTHLY", "TUITION_FEE", "DEPOSIT_FEE", "ELECTRICITY_TRANSPORT",
     "LIBRARY_FEE", "REGISTRATION_FEE", "IDENTITY_SPORTS", "EXAM_FEE_1",
-    "EXAM_FEE_2", "EXAM_FEE_3", "SEE_EXAM_FEE", "BUILDING_MISC_FEE",
+    "EXAM_FEE_2", "EXAM_FEE_3", "EXAM_FEE_4", "SEE_EXAM_FEE", "BUILDING_MISC_FEE",
     "CERTIFICATE_FEE", "GRADE_SHEET", "TIE_BELT"
   ], { required_error: "Fee category is required" }),
   totalAmount: z
@@ -256,9 +256,9 @@ export const paymentSchema = z.object({
   reference: z.string().optional(),
   transactionId: z.string().optional(),
   category: z.enum([
-    "PARENT_SUPPORT", "TUITION_FEE", "DEPOSIT_FEE", "ELECTRICITY_TRANSPORT",
+    "PARENT_SUPPORT", "PARENT_SUPPORT_MONTHLY", "TUITION_FEE", "DEPOSIT_FEE", "ELECTRICITY_TRANSPORT",
     "LIBRARY_FEE", "REGISTRATION_FEE", "IDENTITY_SPORTS", "EXAM_FEE_1",
-    "EXAM_FEE_2", "EXAM_FEE_3", "SEE_EXAM_FEE", "BUILDING_MISC_FEE",
+    "EXAM_FEE_2", "EXAM_FEE_3", "EXAM_FEE_4", "SEE_EXAM_FEE", "BUILDING_MISC_FEE",
     "CERTIFICATE_FEE", "GRADE_SHEET", "TIE_BELT"
   ], { required_error: "Payment category is required" })
 }).superRefine((val, ctx) => {
@@ -321,9 +321,9 @@ export type TeacherAttendanceSchema = z.infer<typeof teacherAttendanceSchema>;
 export const bulkFeeSchema = z.object({
   classId: z.coerce.number().min(1, "Class is required"),
   category: z.enum([
-    "PARENT_SUPPORT", "TUITION_FEE", "DEPOSIT_FEE", "ELECTRICITY_TRANSPORT",
+    "PARENT_SUPPORT", "PARENT_SUPPORT_MONTHLY", "TUITION_FEE", "DEPOSIT_FEE", "ELECTRICITY_TRANSPORT",
     "LIBRARY_FEE", "REGISTRATION_FEE", "IDENTITY_SPORTS", "EXAM_FEE_1",
-    "EXAM_FEE_2", "EXAM_FEE_3", "SEE_EXAM_FEE", "BUILDING_MISC_FEE",
+    "EXAM_FEE_2", "EXAM_FEE_3", "EXAM_FEE_4", "SEE_EXAM_FEE", "BUILDING_MISC_FEE",
     "CERTIFICATE_FEE", "GRADE_SHEET", "TIE_BELT"
   ], { required_error: "Fee category is required" }),
   totalAmount: z.coerce.number().positive("Amount must be positive"),
