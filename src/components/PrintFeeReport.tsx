@@ -365,7 +365,7 @@ const PrintFeeReport = ({ data, onClose, onBack }: PrintFeeReportProps) => {
                     <th style={{border: "1px solid #666", padding: "3px 4px", textAlign: "center", width: "6%", fontSize: "11px", fontWeight: "bold"}}>कक्षा</th>
                     <th style={{border: "1px solid #666", padding: "3px 4px", textAlign: "center", width: "10%", fontSize: "11px", fontWeight: "bold"}}>श्रेणी</th>
                     <th style={{border: "1px solid #666", padding: "3px 4px", textAlign: "center", width: "8%", fontSize: "11px", fontWeight: "bold"}}>कुल रकम</th>
-                    <th style={{border: "1px solid #666", padding: "3px 4px", textAlign: "center", width: "8%", fontSize: "11px", fontWeight: "bold"}}>भुक्तान</th>
+                    <th style={{border: "1px solid #666", padding: "3px 4px", textAlign: "center", width: "8%", fontSize: "11px", fontWeight: "bold"}}>बाँकी रकम</th>
                     <th style={{border: "1px solid #666", padding: "3px 4px", textAlign: "center", width: "7%", fontSize: "11px", fontWeight: "bold"}}>स्थिति</th>
                   </tr>
                 </thead>
@@ -388,7 +388,7 @@ const PrintFeeReport = ({ data, onClose, onBack }: PrintFeeReportProps) => {
                         ₹{Number(record.totalAmount).toLocaleString()}
                       </td>
                       <td style={{border: "1px solid #666", padding: "2px 4px", textAlign: "right", fontSize: "10px", fontWeight: "500"}}>
-                        ₹{Number(record.paidAmount).toLocaleString()}
+                        ₹{(Number(record.totalAmount) - Number(record.paidAmount)).toLocaleString()}
                       </td>
                       <td style={{border: "1px solid #666", padding: "2px 4px", textAlign: "center", fontSize: "10px"}}>
                         <span className={getStatusColor(record.status)}>

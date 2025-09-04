@@ -299,7 +299,7 @@ export const financeSchema = z.object({
     "TOILET_CLEANING", "TELEPHONE_POST", "LAND_REVENUE", "TRACK_SUIT", "SOUND_SYSTEM", 
     "ELECTRICITY", "COMPUTER_MATERIALS", "STEM_LAB", "SARASWATI_PUJA", "DAILY_TRAVEL", 
     "STATUE_CONSTRUCTION", "SPORTS", "LIABILITY", "TIE_BELT", "BUS_MANAGEMENT", 
-    "EXCESS_REFUND", "HOSPITALITY", "TEACHER_SELECTION"
+    "EXCESS_REFUND", "HOSPITALITY", "TEACHER_SELECTION","OTHER" 
   ], {
     required_error: "Expense category is required"
   }).optional().nullable(),
@@ -315,7 +315,8 @@ export const financeSchema = z.object({
     "EARN_WHILE_LEARNING", "EXAM", "BANK_INTEREST", "PARENT_SUPPORT", "CERTIFICATE", 
     "ENDOWMENT_FUND", "NATIONAL_EXAM_BOARD", "STEM_LAB", "GRADE_11_PARENT_SUPPORT", 
     "GRADE_12_PARENT_SUPPORT", "ADVERTISEMENT", "TIE_BELT", "TRANSPORTATION", "MAGHE_MELA", 
-    "N_CELL", "YAGYA_SUPPORT", "ASSEMBLY_HALL", "PAPER_SALES"
+    "N_CELL", "YAGYA_SUPPORT", "ASSEMBLY_HALL", "PAPER_SALES","OTHER"
+
   ], {
     required_error: "Income category is required"
   }).optional().nullable(),

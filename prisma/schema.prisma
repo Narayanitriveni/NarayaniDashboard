@@ -374,6 +374,7 @@ enum ExpenseCategory {
   EXCESS_REFUND                // निकासामा बढि छात्रवृत्ति तथा तलव फिर्ता
   HOSPITALITY                  // अतिथि सत्कार (चियापान)
   TEACHER_SELECTION            // शिक्षक छनौट खर्च
+  OTHER                        // अन्य
 }
 
 enum IncomeCategory {
@@ -417,6 +418,7 @@ enum IncomeCategory {
   YAGYA_SUPPORT                                    // यज्ञ सहयोग
   ASSEMBLY_HALL                                    // सभाहल
   PAPER_SALES                                      // कागज बिक्रीबाट
+  OTHER                                            // अन्य
 }
 
 enum FeeCategory {

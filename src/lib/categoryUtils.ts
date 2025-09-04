@@ -40,7 +40,8 @@ export const expenseCategoryNepali: Record<ExpenseCategory, string> = {
   BUS_MANAGEMENT: "बस व्यवस्थापन तथा ईन्धन",
   EXCESS_REFUND: "निकासामा बढि छात्रवृत्ति तथा तलव फिर्ता",
   HOSPITALITY: "अतिथि सत्कार (चियापान)",
-  TEACHER_SELECTION: "शिक्षक छनौट खर्च"
+  TEACHER_SELECTION: "शिक्षक छनौट खर्च",
+  OTHER: "अन्य"
 };
 
 // Nepali translations for income categories
@@ -84,7 +85,8 @@ export const incomeCategoryNepali: Record<IncomeCategory, string> = {
   N_CELL: "एन. सेलबाट",
   YAGYA_SUPPORT: "यज्ञ सहयोग",
   ASSEMBLY_HALL: "सभाहल",
-  PAPER_SALES: "कागज बिक्रीबाट"
+  PAPER_SALES: "कागज बिक्रीबाट",
+  OTHER: "अन्य"
 };
 
 // Color mapping for expense categories
@@ -127,7 +129,8 @@ export const expenseCategoryColors: Record<ExpenseCategory, string> = {
   BUS_MANAGEMENT: "bg-orange-100 text-orange-800",
   EXCESS_REFUND: "bg-amber-100 text-amber-800",
   HOSPITALITY: "bg-yellow-100 text-yellow-800",
-  TEACHER_SELECTION: "bg-lime-100 text-lime-800"
+  TEACHER_SELECTION: "bg-lime-100 text-lime-800",
+  OTHER: "bg-gray-100 text-gray-800"
 };
 
 // Color mapping for income categories
@@ -171,7 +174,8 @@ export const incomeCategoryColors: Record<IncomeCategory, string> = {
   N_CELL: "bg-green-100 text-green-800",
   YAGYA_SUPPORT: "bg-emerald-100 text-emerald-800",
   ASSEMBLY_HALL: "bg-teal-100 text-teal-800",
-  PAPER_SALES: "bg-cyan-100 text-cyan-800"
+  PAPER_SALES: "bg-cyan-100 text-cyan-800",
+  OTHER: "bg-gray-100 text-gray-800"
 };
 
 // Helper function to get Nepali name for a category
