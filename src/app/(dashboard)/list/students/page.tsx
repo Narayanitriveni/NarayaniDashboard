@@ -105,10 +105,10 @@ const StudentListPage = async (
               <Image src="/view.png" alt="" width={16} height={16} />
             </button>
           </Link>
-          {role === "admin" && (
+          {role === "admin" || role === "accountant" && (
             <FormContainer table="student" type="update" data={item.student} />
           )}
-          {role === "admin" && (
+          {role === "admin" || role === "accountant" && (
             <FormContainer table="student" type="delete" id={item.student.id} />
           )}
         </div>
@@ -131,7 +131,17 @@ const StudentListPage = async (
             query.student = {
               OR: [
                 { name: { contains: value, mode: "insensitive" } },
-                { StudentId: { contains: value, mode: "insensitive" } }
+                { StudentId: { contains: value, mode: "insensitive" } },
+                { surname: { contains: value, mode: "insensitive" } },
+                // Handle full name search (name + surname)
+                {
+                  AND: value.split(' ').filter(term => term.trim()).map(term => ({
+                    OR: [
+                      { name: { contains: term.trim(), mode: "insensitive" } },
+                      { surname: { contains: term.trim(), mode: "insensitive" } }
+                    ]
+                  }))
+                }
               ]
             };
             break;
