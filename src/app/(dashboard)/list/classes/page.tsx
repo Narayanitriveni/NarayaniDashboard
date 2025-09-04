@@ -51,7 +51,7 @@ const ClassListPage = async (
       accessor: "supervisor",
       className: "hidden md:table-cell",
     },
-    ...(role === "admin"
+    ...(role === "admin" || role === "accountant" 
       ? [
           {
             header: "Actions",
@@ -90,7 +90,7 @@ const ClassListPage = async (
               <Image src="/view.png" alt="" width={16} height={16} />
             </button>
           </Link>
-          {role === "admin" && (
+          {role === "admin" || role === "accountant" && (
             <>
               <FormContainer table="class" type="update" data={item} />
               <FormContainer table="class" type="delete" id={item.id} />
@@ -151,7 +151,7 @@ const ClassListPage = async (
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <h1 className="text-lg font-semibold">All Classes</h1>
-          {role === "admin" && <FormContainer table="class" type="create" />}
+          {role === "admin" || role === "accountant" && <FormContainer table="class" type="create" />}
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-4 w-full">
           <div className="w-full sm:w-auto">

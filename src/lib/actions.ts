@@ -3132,3 +3132,393 @@ export const deleteClassFeeStructure = async (
     };
   }
 };
+
+// Generate Finance Report
+export const generateFinanceReport = async (filters: {
+  type?: "ALL" | "INCOME" | "EXPENSE";
+  category?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  dateType?: "BS";
+}) => {
+  try {
+    const { type, category, dateFrom, dateTo, dateType } = filters;
+
+    // Build where clause
+    const whereClause: any = {};
+
+    // Filter by transaction type
+    if (type && type !== "ALL") {
+      whereClause.type = type;
+    }
+
+    // Filter by category
+    if (category) {
+      if (type === "INCOME") {
+        whereClause.incomeCategory = category;
+      } else if (type === "EXPENSE") {
+        whereClause.expenseCategory = category;
+      }
+    }
+
+    // Filter by date range
+    if (dateFrom || dateTo) {
+      whereClause.createdAt = {};
+      
+      if (dateFrom) {
+        const fromDate = new Date(dateFrom);
+        if (!isNaN(fromDate.getTime())) {
+          whereClause.createdAt.gte = fromDate;
+        }
+      }
+      
+      if (dateTo) {
+        const toDate = new Date(dateTo);
+        if (!isNaN(toDate.getTime())) {
+          // Set to end of day
+          toDate.setHours(23, 59, 59, 999);
+          whereClause.createdAt.lte = toDate;
+        }
+      }
+    }
+
+    // Fetch data
+    const [records, summary] = await prisma.$transaction([
+      prisma.finance.findMany({
+        where: whereClause,
+        orderBy: [
+          { createdAt: 'desc' },
+          { type: 'asc' },
+        ],
+      }),
+      prisma.finance.groupBy({
+        by: ['type'],
+        where: whereClause,
+        _sum: {
+          amount: true,
+        },
+        _count: {
+          id: true,
+        },
+        orderBy: {
+          type: 'asc',
+        },
+      }),
+    ]);
+
+    // Group records by category
+    const groupedByCategory = records.reduce((acc: any, record) => {
+      let categoryKey = '';
+      if (record.type === 'INCOME' && record.incomeCategory) {
+        categoryKey = record.incomeCategory;
+      } else if (record.type === 'EXPENSE' && record.expenseCategory) {
+        categoryKey = record.expenseCategory;
+      } else {
+        categoryKey = 'UNCATEGORIZED';
+      }
+
+      if (!acc[categoryKey]) {
+        acc[categoryKey] = {
+          category: categoryKey,
+          type: record.type,
+          records: [],
+          totalAmount: 0,
+          count: 0,
+        };
+      }
+
+      acc[categoryKey].records.push(record);
+      acc[categoryKey].totalAmount += Number(record.amount);
+      acc[categoryKey].count += 1;
+
+      return acc;
+    }, {});
+
+    // Calculate totals
+    const totalIncome = summary.find(s => s.type === 'INCOME')?._sum?.amount || 0;
+    const totalExpense = summary.find(s => s.type === 'EXPENSE')?._sum?.amount || 0;
+    const netAmount = Number(totalIncome) - Number(totalExpense);
+
+    const reportData = {
+      records,
+      groupedByCategory: Object.values(groupedByCategory),
+      summary: {
+        totalIncome: Number(totalIncome),
+        totalExpense: Number(totalExpense),
+        netAmount,
+        totalRecords: records.length,
+        dateRange: {
+          from: dateFrom,
+          to: dateTo,
+          type: dateType,
+        },
+        filters: {
+          type,
+          category,
+        },
+      },
+      generatedAt: new Date(),
+    };
+
+    return {
+      success: true,
+      error: false,
+      data: reportData,
+    };
+  } catch (error: any) {
+    console.error("Error generating finance report:", error);
+    return {
+      success: false,
+      error: true,
+      message: error.message || "Failed to generate report",
+    };
+  }
+};
+
+// Generate Fee Report
+export const generateFeeReport = async (filters: {
+  classId?: string;
+  status?: "ALL" | "PAID" | "UNPAID" | "PARTIAL" | "OVERDUE" | "WAIVED";
+  category?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  dateType?: "BS";
+}) => {
+  try {
+    const { classId, status, category, dateFrom, dateTo } = filters;
+
+
+    // Build where clause
+    const whereClause: any = {};
+    let selectedClass = null;
+
+    // Filter by class through student enrollment and get class name
+    if (classId && classId !== "") {
+      const parsedClassId = parseInt(classId);
+      if (!isNaN(parsedClassId)) {
+        
+        // Get the class name for display
+        selectedClass = await prisma.class.findUnique({
+          where: { id: parsedClassId },
+          select: { name: true },
+        });
+
+        // Filter by students who are enrolled in this class
+        whereClause.student = {
+          enrollments: {
+            some: {
+              classId: parsedClassId,
+              leftAt: null, // Only current enrollments
+            }
+          }
+        };
+      }
+    }
+
+    // Filter by payment status
+    if (status && status !== "ALL") {
+      whereClause.status = status;
+    }
+
+    // Filter by fee category
+    if (category) {
+      whereClause.category = category;
+    }
+
+    // Filter by date range (due date)
+    if (dateFrom || dateTo) {
+      whereClause.dueDate = {};
+      
+      if (dateFrom) {
+        const fromDate = new Date(dateFrom);
+        if (!isNaN(fromDate.getTime())) {
+          whereClause.dueDate.gte = fromDate;
+        }
+      }
+      
+      if (dateTo) {
+        const toDate = new Date(dateTo);
+        if (!isNaN(toDate.getTime())) {
+          // Set to end of day
+          toDate.setHours(23, 59, 59, 999);
+          whereClause.dueDate.lte = toDate;
+        }
+      }
+    }
+
+    // Fetch data with student and class information
+    const [records, summary, statusSummary] = await prisma.$transaction([
+      prisma.fee.findMany({
+        where: whereClause,
+        include: {
+          student: {
+            select: {
+              id: true,
+              name: true,
+              surname: true,
+              StudentId: true,
+              fatherName: true,
+              motherName: true,
+              phone: true,
+              enrollments: {
+                where: {
+                  leftAt: null, // Only current enrollments
+                },
+                include: {
+                  class: {
+                    select: {
+                      name: true,
+                    },
+                  },
+                },
+                orderBy: {
+                  year: 'desc',
+                },
+                take: 1,
+              },
+            },
+          },
+          class: {
+            select: {
+              name: true,
+            },
+          },
+          payments: {
+            select: {
+              amount: true,
+              date: true,
+            },
+          },
+        },
+        orderBy: [
+          { student: { name: 'asc' } },
+          { category: 'asc' },
+          { createdAt: 'desc' },
+        ],
+      }),
+      // Overall summary
+      prisma.fee.groupBy({
+        by: ['status'],
+        where: whereClause,
+        _sum: {
+          totalAmount: true,
+          paidAmount: true,
+        },
+        _count: {
+          id: true,
+        },
+        orderBy: {
+          status: 'asc',
+        },
+      }),
+      // Status-wise summary (since we can't group by classId directly)
+      prisma.fee.groupBy({
+        by: ['status'],
+        where: whereClause,
+        _sum: {
+          totalAmount: true,
+          paidAmount: true,
+        },
+        _count: {
+          id: true,
+        },
+        orderBy: {
+          status: 'asc',
+        },
+      }),
+    ]);
+
+
+    // Calculate additional summary statistics
+    const totalAmount = records.reduce((sum, record) => sum + Number(record.totalAmount), 0);
+    const totalPaid = records.reduce((sum, record) => sum + Number(record.paidAmount), 0);
+    const totalDue = totalAmount - totalPaid;
+
+    // Group records by class (using enrollment data)
+    const groupedByClass = records.reduce((acc: any, record) => {
+      // Get class name from student's current enrollment
+      const currentEnrollment = record.student?.enrollments?.[0];
+      const classKey = currentEnrollment?.class?.name || record.class?.name || 'No Class';
+      
+      if (!acc[classKey]) {
+        acc[classKey] = {
+          className: classKey,
+          records: [],
+          totalAmount: 0,
+          totalPaid: 0,
+          totalDue: 0,
+          count: 0,
+        };
+      }
+
+      acc[classKey].records.push(record);
+      acc[classKey].totalAmount += Number(record.totalAmount);
+      acc[classKey].totalPaid += Number(record.paidAmount);
+      acc[classKey].totalDue += Number(record.totalAmount) - Number(record.paidAmount);
+      acc[classKey].count += 1;
+
+      return acc;
+    }, {});
+
+    // Group records by status
+    const groupedByStatus = records.reduce((acc: any, record) => {
+      if (!acc[record.status]) {
+        acc[record.status] = {
+          status: record.status,
+          records: [],
+          totalAmount: 0,
+          totalPaid: 0,
+          totalDue: 0,
+          count: 0,
+        };
+      }
+
+      acc[record.status].records.push(record);
+      acc[record.status].totalAmount += Number(record.totalAmount);
+      acc[record.status].totalPaid += Number(record.paidAmount);
+      acc[record.status].totalDue += Number(record.totalAmount) - Number(record.paidAmount);
+      acc[record.status].count += 1;
+
+      return acc;
+    }, {});
+
+    const reportData = {
+      records,
+      groupedByClass: Object.values(groupedByClass),
+      groupedByStatus: Object.values(groupedByStatus),
+      summary: {
+        totalAmount,
+        totalPaid,
+        totalDue,
+        totalRecords: records.length,
+        statusSummary: summary,
+        classSummary: statusSummary,
+        dateRange: {
+          from: dateFrom,
+          to: dateTo,
+          type: "BS",
+        },
+        filters: {
+          classId,
+          className: selectedClass?.name,
+          status,
+          category,
+        },
+      },
+      generatedAt: new Date(),
+    };
+
+    return {
+      success: true,
+      error: false,
+      data: reportData,
+    };
+  } catch (error: any) {
+    console.error("Error generating fee report:", error);
+    return {
+      success: false,
+      error: true,
+      message: error.message || "Failed to generate fee report",
+    };
+  }
+};

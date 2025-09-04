@@ -26,6 +26,7 @@ import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { useFormState } from "react-dom";
 import { toast } from "react-toastify";
 import { FormContainerProps } from "./FormContainer";
+import { Printer } from "lucide-react";
 
 
 const deleteActionMap = {
@@ -106,6 +107,12 @@ const AccountantForm = dynamic(() => import("./forms/AccountantForm"), {
   loading: () => <h1>Loading...</h1>,
 });
 const BulkFeeForm = dynamic(() => import("./forms/BulkFeeForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
+const FinanceReportForm = dynamic(() => import("./forms/FinanceReportForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
+const FeeReportForm = dynamic(() => import("./forms/FeeReportForm"), {
   loading: () => <h1>Loading...</h1>,
 });
 // TODO: OTHER FORMS
@@ -259,6 +266,19 @@ const forms: {
       onSuccess={() => setOpen(false)}
     />
   ),
+  financeReport: (setOpen, type, data) => (
+    <FinanceReportForm
+      type="create"
+      setOpen={setOpen}
+    />
+  ),
+  feeReport: (setOpen, type, data, relatedData) => (
+    <FeeReportForm
+      type="create"
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
 };
 
 const FormModal = ({
@@ -270,7 +290,9 @@ const FormModal = ({
 }: FormContainerProps & { relatedData?: any }) => {
   const size = type === "create" ? "w-8 h-8" : "w-7 h-7";
   const bgColor =
-    type === "create"
+    table === "financeReport" || table === "feeReport"
+      ? "bg-lamaYellow"
+      : type === "create"
       ? "bg-lamaYellow"
       : type === "update"
       ? "bg-lamaSky"
@@ -313,10 +335,15 @@ const FormModal = ({
   return (
     <>
       <button
-        className={`${size} flex items-center justify-center rounded-full ${bgColor}`}
+        className={`${size} flex items-center justify-center rounded-full ${bgColor} hover:opacity-90 transition-opacity`}
         onClick={() => setOpen(true)}
+        title={table === "financeReport" ? "Print Finance Report" : table === "feeReport" ? "Print Fee Report" : undefined}
       >
-        <Image src={`/${type}.png`} alt="" width={16} height={16} />
+        {table === "financeReport" || table === "feeReport" ? (
+          <Printer className="w-4 h-4 text-black" />
+        ) : (
+          <Image src={`/${type}.png`} alt="" width={16} height={16} />
+        )}
       </button>
       {open && (
         <div className="w-screen h-screen absolute left-0 top-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">

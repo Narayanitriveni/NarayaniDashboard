@@ -9,6 +9,7 @@ import { Finance, Prisma, TransactionType } from "@prisma/client";
 import Image from "next/image";
 import { auth } from "@clerk/nextjs/server";
 import { ADToBS } from "bikram-sambat-js";
+import { Printer } from "lucide-react";
 import { 
   expenseCategoryNepali, 
   incomeCategoryNepali, 
@@ -196,7 +197,12 @@ const FinanceListPage = async (
               <Image src="/filter.png" alt="" width={14} height={14} />
             </button>
             <SortDropdown options={sortOptions} defaultSort="date" />
-            {(role === "admin" || role === "accountant") && <FormContainer table="finance" type="create" />}
+            {(role === "admin" || role === "accountant") && (
+              <>
+                <FormContainer table="financeReport" type="create" />
+                <FormContainer table="finance" type="create" />
+              </>
+            )}
           </div>
         </div>
       </div>

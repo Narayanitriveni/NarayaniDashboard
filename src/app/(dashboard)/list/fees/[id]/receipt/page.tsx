@@ -182,7 +182,7 @@ export default function ReceiptPage(props: { params: { id: string } }) {
   };
 
   // Move the receipt content to a separate component for reuse
-  const ReceiptContent = () => (
+  const ReceiptContent = ({ copyType }: { copyType: 'TEACHER' | 'OFFICE' }) => (
     <div
       className="bg-white rounded-lg shadow overflow-hidden border m-2"
       style={{
@@ -191,8 +191,27 @@ export default function ReceiptPage(props: { params: { id: string } }) {
         fontSize: '11px', // Smaller font for compactness
         padding: '10px',
         boxSizing: 'border-box',
+        position: 'relative',
       }}
     >
+      {/* Copy Type Label */}
+      <div 
+        className="absolute top-16 right-2 z-10"
+        style={{
+          backgroundColor: copyType === 'TEACHER' ? '#4CAF50' : '#FF9800',
+          color: 'white',
+          padding: '3px 10px',
+          borderRadius: '6px',
+          fontSize: '10px',
+          fontWeight: 'bold',
+          transform: 'rotate(-10deg)',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+          border: '1px solid rgba(255,255,255,0.3)',
+        }}
+      >
+        {copyType === 'TEACHER' ? 'TEACHER COPY' : 'OFFICE COPY'}
+      </div>
+
       {/* Header */}
       <div className="bg-[#9C27B0] text-white p-2 rounded-t">
         <div className="flex justify-between items-center">
@@ -303,7 +322,7 @@ export default function ReceiptPage(props: { params: { id: string } }) {
 
       {/* Footer */}
       <div className="p-2 bg-gray-50 border-t">
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center mb-3">
           <div className="text-xs text-gray-600">
             <p>Generated on {formatBSDate(new Date())}</p>
             <p className="mt-0.5">Academix Cloud School Management System</p>
@@ -312,6 +331,35 @@ export default function ReceiptPage(props: { params: { id: string } }) {
             <p className="text-xs font-medium text-gray-900">Total: {Number(fee.totalAmount).toLocaleString()}</p>
             <p className="text-xs font-medium text-gray-900">Paid: {totalPaid.toLocaleString()}</p>
             <p className="text-xs font-medium text-gray-900">Remain: {remainingAmount.toLocaleString()}</p>
+          </div>
+        </div>
+        
+        {/* Signature Section */}
+        <div className="border-t pt-2 mt-2">
+          <div className="flex justify-between items-end">
+            <div className="text-center">
+              <div 
+                className="border-b border-gray-400 mb-1"
+                style={{ width: '120px', height: '30px' }}
+              ></div>
+              {/* <p className="text-xs text-gray-600">
+                {copyType === 'TEACHER' ? 'शिक्षकको हस्ताक्षर' : 'कार्यालयको हस्ताक्षर'}
+              </p> */}
+              <p className="text-xs text-gray-500">
+                {copyType === 'TEACHER' ? 'Teacher Signature' : 'Office Signature'}
+              </p>
+            </div>
+            
+            <div className="text-center">
+              <div 
+                className="border-b border-gray-400 mb-1"
+                style={{ width: '120px', height: '30px' }}
+              ></div>
+              {/* <p className="text-xs text-gray-600">अभिभावकको हस्ताक्षर</p> */}
+              <p className="text-xs text-gray-500">Parent Signature</p>
+            </div>
+            
+           
           </div>
         </div>
       </div>
@@ -337,9 +385,9 @@ export default function ReceiptPage(props: { params: { id: string } }) {
             gap: '8px',
           }}
         >
-          {/* Two identical receipts, one below the other */}
-          <ReceiptContent />
-          <ReceiptContent />
+          {/* Two receipts: Teacher copy and Office copy */}
+          <ReceiptContent copyType="TEACHER" />
+          <ReceiptContent copyType="OFFICE" />
         </div>
 
         <div className="text-center mt-6">

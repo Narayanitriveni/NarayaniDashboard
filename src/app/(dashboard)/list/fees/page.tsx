@@ -324,7 +324,12 @@ const FeesListPage = async (
               <Image src="/filter.png" alt="" width={14} height={14} />
             </button>
             <SortDropdown options={sortOptions} defaultSort="date" />
-            {(role === "admin" || role === "accountant") && <FormContainer table="fee" type="create" />}
+            {(role === "admin" || role === "accountant") && (
+              <>
+                <FormContainer table="feeReport" type="create" />
+                <FormContainer table="fee" type="create" />
+              </>
+            )}
           </div>
         </div>
       </div>

@@ -87,7 +87,7 @@ const menuItems = [
         icon: "/class.png",
         label: "Classes",
         href: "/list/classes",
-        visible: ["admin", "teacher"],
+        visible: ["admin", "teacher","accountant"],
         color: "bg-emerald-50"
       },
       {
